@@ -26,11 +26,14 @@ export type HabitFrequency = 'daily' | 'weekly'
 export type InvestmentStrategy = 'conservative' | 'balanced' | 'long_term'
 
 // --- Auth ---
+export type UserRole = 'admin' | 'user'
+
 export interface AuthUser {
   id: string
   email: string
   language: Language
   timezone: string
+  role: UserRole
 }
 
 export interface AuthLoginResponse {

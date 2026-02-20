@@ -2,19 +2,20 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: '📊' },
-  { to: '/transactions', label: 'Transacciones', icon: '💸' },
-  { to: '/saving-goals', label: 'Metas de ahorro', icon: '🎯' },
-  { to: '/habits', label: 'Hábitos', icon: '✅' },
-  { to: '/snapshots', label: 'Snapshots', icon: '🧠' },
-  { to: '/categories', label: 'Categorías', icon: '🏷️' },
-  { to: '/investment-profiles', label: 'Inversiones', icon: '📈' },
-  { to: '/profile', label: 'Perfil', icon: '👤' },
+  { to: '/', label: 'Dashboard', icon: '📊', adminOnly: false },
+  { to: '/transactions', label: 'Transacciones', icon: '💸', adminOnly: false },
+  { to: '/saving-goals', label: 'Metas de ahorro', icon: '🎯', adminOnly: false },
+  { to: '/habits', label: 'Hábitos', icon: '✅', adminOnly: false },
+  { to: '/snapshots', label: 'Snapshots', icon: '🧠', adminOnly: false },
+  { to: '/categories', label: 'Categorías', icon: '🏷️', adminOnly: true },
+  { to: '/investment-profiles', label: 'Inversiones', icon: '📈', adminOnly: false },
+  { to: '/profile', label: 'Perfil', icon: '👤', adminOnly: false },
 ]
 
 export function Sidebar() {
-  const { profile, logout } = useAuth()
+  const { user, profile, logout } = useAuth()
   const navigate = useNavigate()
+  const isAdmin = user?.role === 'admin'
 
   function handleLogout() {
     logout()
@@ -33,7 +34,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => (
+        {navItems.filter((item) => !item.adminOnly || isAdmin).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
+import { AdminRoute } from './components/layout/AdminRoute'
 import { AppLayout } from './components/layout/AppLayout'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
@@ -32,7 +33,7 @@ function App() {
             <Route path="saving-goals" element={<SavingGoals />} />
             <Route path="habits" element={<Habits />} />
             <Route path="snapshots" element={<Snapshots />} />
-            <Route path="categories" element={<Categories />} />
+            <Route path="categories" element={<AdminRoute><Categories /></AdminRoute>} />
             <Route path="investment-profiles" element={<InvestmentProfiles />} />
             <Route path="profile" element={<Profile />} />
           </Route>
