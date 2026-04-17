@@ -5,12 +5,15 @@ import { AdminRoute } from './components/layout/AdminRoute'
 import { AppLayout } from './components/layout/AppLayout'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { Dashboard } from './pages/Dashboard'
 import { Transactions } from './pages/Transactions'
 import { SavingGoals } from './pages/SavingGoals'
 import { Habits } from './pages/Habits'
 import { Snapshots } from './pages/Snapshots'
 import { Categories } from './pages/Categories'
+import { Roles } from './pages/Roles'
 import { InvestmentProfiles } from './pages/InvestmentProfiles'
 import { Profile } from './pages/Profile'
 
@@ -21,6 +24,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             element={
               <ProtectedRoute>
@@ -34,6 +39,7 @@ function App() {
             <Route path="habits" element={<Habits />} />
             <Route path="snapshots" element={<Snapshots />} />
             <Route path="categories" element={<AdminRoute><Categories /></AdminRoute>} />
+            <Route path="roles" element={<AdminRoute><Roles /></AdminRoute>} />
             <Route path="investment-profiles" element={<InvestmentProfiles />} />
             <Route path="profile" element={<Profile />} />
           </Route>

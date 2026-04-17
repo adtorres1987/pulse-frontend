@@ -128,3 +128,14 @@ export interface InvestmentProfile {
   expectedReturn: string
   createdAt: string
 }
+
+// --- Roles ---
+export type RoleType = 'super_admin' | 'admin' | 'support' | 'user'
+
+export interface Role {
+  id: string
+  name: RoleType
+  description: string | null
+  createdAt: string
+  permissions: string[]
+}

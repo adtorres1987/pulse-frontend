@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import logo from '../../assets/logo.png'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '📊', adminOnly: false },
@@ -8,6 +9,7 @@ const navItems = [
   { to: '/habits', label: 'Hábitos', icon: '✅', adminOnly: false },
   { to: '/snapshots', label: 'Snapshots', icon: '🧠', adminOnly: false },
   { to: '/categories', label: 'Categorías', icon: '🏷️', adminOnly: true },
+  { to: '/roles', label: 'Roles y permisos', icon: '🔐', adminOnly: true },
   { to: '/investment-profiles', label: 'Inversiones', icon: '📈', adminOnly: false },
   { to: '/profile', label: 'Perfil', icon: '👤', adminOnly: false },
 ]
@@ -25,7 +27,7 @@ export function Sidebar() {
   return (
     <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col">
       <div className="px-6 py-5 border-b border-gray-100">
-        <h1 className="text-xl font-bold text-blue-600">Pulso</h1>
+        <img src={logo} alt="Pulso" className="h-8" />
         {profile?.person && (
           <p className="text-xs text-gray-500 mt-1 truncate">
             {profile.person.firstName} {profile.person.lastName}

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { login as apiLogin } from '../api/auth'
+import { login as apiLogin, logoutApi } from '../api/auth'
 import { getMe } from '../api/me'
 import type { AuthUser, UserProfile } from '../types'
 
@@ -24,7 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser))
+      const parsed = JSON.parse(savedUser)
+      setUser({ ...parsed, role: parsed.role ?? 'user' })
       getMe()
         .then(setProfile)
         .catch(() => {
@@ -40,14 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const data = await apiLogin(email, password)
+    const user: AuthUser = { ...data.user, role: (data.user.role as string | null) ?? 'user' }
     localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    setUser(data.user)
+    localStorage.setItem('user', JSON.stringify(user))
+    setUser(user)
     const me = await getMe()
     setProfile(me)
   }
 
   function logout() {
+    // Fire-and-forget: blacklist the token on the backend.
+    // State is cleared immediately so the UI doesn't wait on the network.
+    logoutApi().catch(() => {})
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)

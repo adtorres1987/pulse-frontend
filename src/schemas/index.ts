@@ -17,6 +17,20 @@ export const registerSchema = z.object({
 })
 export type RegisterForm = z.infer<typeof registerSchema>
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Email inválido'),
+})
+export type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  confirm: z.string(),
+}).refine((d) => d.password === d.confirm, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirm'],
+})
+export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>
+
 // --- Me ---
 export const updateProfileSchema = z.object({
   firstName: z.string().min(2).optional(),
@@ -88,3 +102,15 @@ export const investmentProfileSchema = z.object({
   expectedReturn: z.number().min(0).max(100),
 })
 export type InvestmentProfileForm = z.infer<typeof investmentProfileSchema>
+
+// --- Roles ---
+export const roleCreateSchema = z.object({
+  name: z.enum(['super_admin', 'admin', 'support', 'user']),
+  description: z.string().optional(),
+})
+export type RoleCreateForm = z.infer<typeof roleCreateSchema>
+
+export const roleUpdateSchema = z.object({
+  description: z.string().optional(),
+})
+export type RoleUpdateForm = z.infer<typeof roleUpdateSchema>
