@@ -10,6 +10,7 @@ const navItems = [
   { to: '/snapshots', label: 'Snapshots', icon: '🧠', adminOnly: false },
   { to: '/categories', label: 'Categorías', icon: '🏷️', adminOnly: true },
   { to: '/roles', label: 'Roles y permisos', icon: '🔐', adminOnly: true },
+  { to: '/admin/users', label: 'Usuarios', icon: '👥', adminOnly: true },
   { to: '/investment-profiles', label: 'Inversiones', icon: '📈', adminOnly: false },
   { to: '/profile', label: 'Perfil', icon: '👤', adminOnly: false },
 ]
@@ -17,7 +18,7 @@ const navItems = [
 export function Sidebar() {
   const { user, profile, logout } = useAuth()
   const navigate = useNavigate()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
 
   function handleLogout() {
     logout()

@@ -20,7 +20,7 @@ export function Profile() {
   const [profileOk, setProfileOk] = useState('')
   const [profileApiErr, setProfileApiErr] = useState('')
 
-  const [pwForm, setPwForm] = useState<ChangePasswordForm>({ currentPassword: '', newPassword: '' })
+  const [pwForm, setPwForm] = useState<ChangePasswordForm>({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwErrors, setPwErrors] = useState<Partial<Record<keyof ChangePasswordForm, string>>>({})
   const [pwSaving, setPwSaving] = useState(false)
   const [pwOk, setPwOk] = useState('')
@@ -62,8 +62,8 @@ export function Profile() {
     }
     try {
       setPwSaving(true)
-      await changePassword(result.data.currentPassword, result.data.newPassword)
-      setPwForm({ currentPassword: '', newPassword: '' })
+      await changePassword(result.data.currentPassword, result.data.newPassword, result.data.confirmPassword)
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
       setPwOk('Contraseña actualizada.')
     } catch {
       setPwApiErr('Contraseña actual incorrecta')
@@ -109,6 +109,8 @@ export function Profile() {
             onChange={(e) => setPw('currentPassword', e.target.value)} error={pwErrors.currentPassword} />
           <Input id="newPassword" label="Nueva contraseña" type="password" value={pwForm.newPassword}
             onChange={(e) => setPw('newPassword', e.target.value)} error={pwErrors.newPassword} />
+          <Input id="confirmPassword" label="Confirmar nueva contraseña" type="password" value={pwForm.confirmPassword}
+            onChange={(e) => setPw('confirmPassword', e.target.value)} error={pwErrors.confirmPassword} />
           {pwApiErr && <p className="text-xs text-red-500">{pwApiErr}</p>}
           {pwOk && <p className="text-xs text-green-600">{pwOk}</p>}
           <Button type="submit" disabled={pwSaving}>{pwSaving ? 'Guardando...' : 'Cambiar contraseña'}</Button>

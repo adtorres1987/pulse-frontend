@@ -18,6 +18,6 @@ export async function updateMe(payload: {
   return res.data.data
 }
 
-export async function changePassword(currentPassword: string, newPassword: string) {
-  await axiosInstance.patch('/me/password', { currentPassword, newPassword })
+export async function changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
+  await axiosInstance.patch('/me/password', { currentPassword, newPassword, confirmPassword })
 }

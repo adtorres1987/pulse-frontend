@@ -139,3 +139,42 @@ export interface Role {
   createdAt: string
   permissions: string[]
 }
+
+// --- Admin Users ---
+export interface AdminUser {
+  id: string
+  email: string
+  isActive: boolean
+  createdAt: string
+  person: {
+    firstName: string
+    lastName: string
+    phone: string | null
+  } | null
+  role: {
+    name: RoleType
+  }
+}
+
+export interface AdminUserFilters {
+  page?: number
+  limit?: number
+  search?: string
+  isActive?: boolean
+}
+
+export interface UpdateAdminUserData {
+  firstName?: string
+  lastName?: string
+  phone?: string
+  email?: string
+  isActive?: boolean
+}
+
+export interface PaginatedResponse<T> {
+  users: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}

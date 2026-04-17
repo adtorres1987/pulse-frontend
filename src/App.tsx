@@ -14,6 +14,7 @@ import { Habits } from './pages/Habits'
 import { Snapshots } from './pages/Snapshots'
 import { Categories } from './pages/Categories'
 import { Roles } from './pages/Roles'
+import { AdminUsers } from './pages/AdminUsers'
 import { InvestmentProfiles } from './pages/InvestmentProfiles'
 import { Profile } from './pages/Profile'
 
@@ -40,6 +41,7 @@ function App() {
             <Route path="snapshots" element={<Snapshots />} />
             <Route path="categories" element={<AdminRoute><Categories /></AdminRoute>} />
             <Route path="roles" element={<AdminRoute><Roles /></AdminRoute>} />
+            <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
             <Route path="investment-profiles" element={<InvestmentProfiles />} />
             <Route path="profile" element={<Profile />} />
           </Route>

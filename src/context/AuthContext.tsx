@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const data = await apiLogin(email, password)
-    const user: AuthUser = { ...data.user, role: (data.user.role as string | null) ?? 'user' }
+    const user: AuthUser = { ...data.user, role: ((data.user.role as string | null) ?? 'user') as AuthUser['role'] }
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(user))
     setUser(user)
