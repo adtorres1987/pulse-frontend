@@ -2,19 +2,15 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { resetPassword } from '../api/auth'
 import { resetPasswordSchema, type ResetPasswordForm } from '../schemas'
+import { Input } from '../components/ui/Input'
 import logo from '../assets/logo.png'
-
-const inputClass =
-  'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition'
-
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5'
 
 export function ResetPassword() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
 
-  const [form, setForm] = useState<ResetPasswordForm>({ password: '', confirm: '' })
+  const [form, setForm] = useState<ResetPasswordForm>({ newPassword: '', confirm: '' })
   const [errors, setErrors] = useState<Partial<ResetPasswordForm>>({})
   const [apiError, setApiError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -45,7 +41,7 @@ export function ResetPassword() {
 
     try {
       setLoading(true)
-      await resetPassword(token, result.data.password)
+      await resetPassword(token, result.data.newPassword)
       navigate('/login')
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
@@ -83,31 +79,29 @@ export function ResetPassword() {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className={labelClass}>Nueva contraseña</label>
-                  <input
-                    type="password"
-                    placeholder="Mínimo 8 caracteres"
-                    value={form.password}
-                    onChange={(e) => onChange('password', e.target.value)}
-                    autoComplete="new-password"
-                    className={inputClass}
-                  />
-                  {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
-                </div>
+                <Input
+                  id="newPassword"
+                  label="Nueva contraseña"
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  value={form.newPassword}
+                  onChange={(e) => onChange('newPassword', e.target.value)}
+                  autoComplete="new-password"
+                  error={errors.newPassword}
+                  variant="auth"
+                />
 
-                <div>
-                  <label className={labelClass}>Confirmar contraseña</label>
-                  <input
-                    type="password"
-                    placeholder="Repite la contraseña"
-                    value={form.confirm}
-                    onChange={(e) => onChange('confirm', e.target.value)}
-                    autoComplete="new-password"
-                    className={inputClass}
-                  />
-                  {errors.confirm && <p className="text-xs text-red-500 mt-1">{errors.confirm}</p>}
-                </div>
+                <Input
+                  id="confirm"
+                  label="Confirmar contraseña"
+                  type="password"
+                  placeholder="Repite la contraseña"
+                  value={form.confirm}
+                  onChange={(e) => onChange('confirm', e.target.value)}
+                  autoComplete="new-password"
+                  error={errors.confirm}
+                  variant="auth"
+                />
 
                 {apiError && (
                   <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{apiError}</p>

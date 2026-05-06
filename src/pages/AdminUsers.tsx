@@ -12,8 +12,6 @@ const STATUS_OPTS = [
   { value: 'false', label: 'Inactivos' },
 ]
 
-const PAGE_SIZE = 10
-
 function fullName(user: AdminUser): string {
   if (!user.person) return '—'
   return `${user.person.firstName} ${user.person.lastName}`.trim()
@@ -30,8 +28,6 @@ function formatDate(iso: string): string {
 const emptyForm = (user: AdminUser): UpdateAdminUserData => ({
   firstName: user.person?.firstName ?? '',
   lastName: user.person?.lastName ?? '',
-  phone: user.person?.phone ?? '',
-  email: user.email,
   isActive: user.isActive,
 })
 
@@ -42,11 +38,6 @@ export function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [apiErr, setApiErr] = useState('')
-
-  // Paginación
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [total, setTotal] = useState(0)
 
   // Filtros
   const [search, setSearch] = useState('')
@@ -72,9 +63,7 @@ export function AdminUsers() {
     setApiErr('')
     try {
       const data = await listClientUsers(filters)
-      setUsers(data.users)
-      setTotal(data.total)
-      setTotalPages(data.totalPages)
+      setUsers(data)
     } catch {
       setApiErr('Error al cargar los usuarios. Intenta de nuevo.')
     } finally {
@@ -82,27 +71,21 @@ export function AdminUsers() {
     }
   }
 
-  // Carga inicial y cuando cambia la página o el filtro de estado
   useEffect(() => {
     const filters: AdminUserFilters = {
-      page,
-      limit: PAGE_SIZE,
       ...(search.trim() ? { search: search.trim() } : {}),
       ...(statusFilter !== '' ? { isActive: statusFilter === 'true' } : {}),
     }
     load(filters)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter])
+  }, [statusFilter])
 
   // Debounce para el campo de búsqueda (400 ms)
   function handleSearchChange(value: string) {
     setSearch(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setPage(1) // Reinicia a la primera página al buscar
       const filters: AdminUserFilters = {
-        page: 1,
-        limit: PAGE_SIZE,
         ...(value.trim() ? { search: value.trim() } : {}),
         ...(statusFilter !== '' ? { isActive: statusFilter === 'true' } : {}),
       }
@@ -112,7 +95,6 @@ export function AdminUsers() {
 
   function handleStatusChange(value: string) {
     setStatusFilter(value)
-    setPage(1) // Reinicia paginación al cambiar filtro
   }
 
   function openEdit(user: AdminUser) {
@@ -126,8 +108,6 @@ export function AdminUsers() {
     const errs: Record<string, string> = {}
     if (!form.firstName?.trim()) errs.firstName = 'El nombre es requerido'
     if (!form.lastName?.trim()) errs.lastName = 'El apellido es requerido'
-    if (!form.email?.trim()) errs.email = 'El correo es requerido'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Correo inválido'
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -142,10 +122,7 @@ export function AdminUsers() {
     try {
       await updateClientUser(editing.id, form)
       setEditing(null)
-      // Recarga la página actual con los filtros activos
       const filters: AdminUserFilters = {
-        page,
-        limit: PAGE_SIZE,
         ...(search.trim() ? { search: search.trim() } : {}),
         ...(statusFilter !== '' ? { isActive: statusFilter === 'true' } : {}),
       }
@@ -195,7 +172,7 @@ export function AdminUsers() {
         <div>
           <h2 className="text-xl font-bold text-gray-900">Usuarios clientes</h2>
           {!loading && (
-            <p className="text-xs text-gray-400 mt-0.5">{total} usuario{total !== 1 ? 's' : ''} en total</p>
+            <p className="text-xs text-gray-400 mt-0.5">{users.length} usuario{users.length !== 1 ? 's' : ''} en total</p>
           )}
         </div>
       </div>
@@ -301,32 +278,6 @@ export function AdminUsers() {
                 </table>
               </div>
 
-              {/* Paginación */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-500">
-                    Página {page} de {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                      className="text-xs px-3 py-1.5"
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={page >= totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                      className="text-xs px-3 py-1.5"
-                    >
-                      Siguiente
-                    </Button>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
@@ -400,25 +351,6 @@ export function AdminUsers() {
               />
             </div>
           </div>
-
-          <Input
-            id="edit-email"
-            label="Correo electrónico"
-            type="email"
-            value={form.email ?? ''}
-            onChange={(e) => {
-              setForm((p) => ({ ...p, email: e.target.value }))
-              setFormErrors((p) => ({ ...p, email: '' }))
-            }}
-            error={formErrors.email}
-          />
-
-          <Input
-            id="edit-phone"
-            label="Teléfono"
-            value={form.phone ?? ''}
-            onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-          />
 
           {/* Toggle isActive */}
           <div className="flex items-center justify-between py-1">

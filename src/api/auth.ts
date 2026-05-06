@@ -40,6 +40,6 @@ export async function forgotPassword(email: string) {
   await axiosInstance.post('/auth/forgot-password', { email })
 }
 
-export async function resetPassword(token: string, password: string) {
-  await axiosInstance.post('/auth/reset-password', { token, password })
+export async function resetPassword(token: string, newPassword: string) {
+  await axiosInstance.post('/auth/reset-password', { token, newPassword })
 }

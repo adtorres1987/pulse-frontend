@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem('user')
     if (token && savedUser) {
       const parsed = JSON.parse(savedUser)
-      setUser({ ...parsed, role: parsed.role ?? 'user' })
+      setUser({ ...parsed, role: parsed.role ?? null })
       getMe()
         .then(setProfile)
         .catch(() => {
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const data = await apiLogin(email, password)
-    const user: AuthUser = { ...data.user, role: ((data.user.role as string | null) ?? 'user') as AuthUser['role'] }
+    const user: AuthUser = { ...data.user, role: data.user.role ?? null }
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(user))
     setUser(user)

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import EmojiPicker, { type EmojiClickData, Theme } from 'emoji-picker-react'
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../api'
+import { getCategories, createAdminCategory, updateAdminCategory, deleteAdminCategory } from '../api'
 import type { Category } from '../types'
 import { categorySchema, type CategoryForm } from '../schemas'
 import { Button } from '../components/ui/Button'
@@ -88,9 +88,9 @@ export function Categories() {
     try {
       setSaving(true)
       if (modal === 'edit' && editing) {
-        await updateCategory(editing.id, payload)
+        await updateAdminCategory(editing.id, payload)
       } else {
-        await createCategory(payload)
+        await createAdminCategory(payload)
       }
       setModal(null)
       load()
@@ -103,7 +103,7 @@ export function Categories() {
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar categoría?')) return
-    await deleteCategory(id)
+    await deleteAdminCategory(id)
     load()
   }
 

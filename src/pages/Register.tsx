@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { register } from '../api/auth'
 import { registerSchema, type RegisterForm } from '../schemas'
+import { Input, Select } from '../components/ui/Input'
 import logo from '../assets/logo.png'
 
 const LANGUAGE_OPTS = [
@@ -42,11 +43,6 @@ const emptyForm = (): RegisterForm => ({
   language: 'es',
 })
 
-const inputClass =
-  'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition'
-
-const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5'
-
 export function Register() {
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -82,11 +78,11 @@ export function Register() {
       navigate('/')
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { error?: string; errors?: Record<string, string[]> } } }
+        const axiosErr = err as { response?: { data?: { error?: string; fieldErrors?: Record<string, string[]> } } }
         const data = axiosErr.response?.data
-        if (data?.errors) {
+        if (data?.fieldErrors) {
           const fe: FormErrors = {}
-          Object.entries(data.errors).forEach(([key, msgs]) => {
+          Object.entries(data.fieldErrors).forEach(([key, msgs]) => {
             fe[key as keyof RegisterForm] = msgs[0]
           })
           setErrors(fe)
@@ -113,84 +109,72 @@ export function Register() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Nombre</label>
-                <input
-                  type="text"
-                  placeholder="Ana"
-                  value={form.firstName}
-                  onChange={(e) => onChange('firstName', e.target.value)}
-                  autoComplete="given-name"
-                  className={inputClass}
-                />
-                {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
-              </div>
-              <div>
-                <label className={labelClass}>Apellido</label>
-                <input
-                  type="text"
-                  placeholder="García"
-                  value={form.lastName}
-                  onChange={(e) => onChange('lastName', e.target.value)}
-                  autoComplete="family-name"
-                  className={inputClass}
-                />
-                {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Correo electrónico</label>
-              <input
-                type="email"
-                placeholder="tu@correo.com"
-                value={form.email}
-                onChange={(e) => onChange('email', e.target.value)}
-                autoComplete="email"
-                className={inputClass}
+              <Input
+                id="firstName"
+                label="Nombre"
+                type="text"
+                placeholder="Ana"
+                value={form.firstName}
+                onChange={(e) => onChange('firstName', e.target.value)}
+                autoComplete="given-name"
+                error={errors.firstName}
+                variant="auth"
               />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-            </div>
-
-            <div>
-              <label className={labelClass}>Contraseña</label>
-              <input
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                value={form.password}
-                onChange={(e) => onChange('password', e.target.value)}
-                autoComplete="new-password"
-                className={inputClass}
+              <Input
+                id="lastName"
+                label="Apellido"
+                type="text"
+                placeholder="García"
+                value={form.lastName}
+                onChange={(e) => onChange('lastName', e.target.value)}
+                autoComplete="family-name"
+                error={errors.lastName}
+                variant="auth"
               />
-              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
             </div>
 
-            <div>
-              <label className={labelClass}>Zona horaria</label>
-              <select
-                value={form.timezone}
-                onChange={(e) => onChange('timezone', e.target.value)}
-                className={inputClass}
-              >
-                {TIMEZONE_OPTS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-              {errors.timezone && <p className="text-xs text-red-500 mt-1">{errors.timezone}</p>}
-            </div>
+            <Input
+              id="email"
+              label="Correo electrónico"
+              type="email"
+              placeholder="tu@correo.com"
+              value={form.email}
+              onChange={(e) => onChange('email', e.target.value)}
+              autoComplete="email"
+              error={errors.email}
+              variant="auth"
+            />
 
-            <div>
-              <label className={labelClass}>Idioma</label>
-              <select
-                value={form.language ?? 'es'}
-                onChange={(e) => onChange('language', e.target.value)}
-                className={inputClass}
-              >
-                {LANGUAGE_OPTS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
+            <Input
+              id="password"
+              label="Contraseña"
+              type="password"
+              placeholder="Mínimo 8 caracteres"
+              value={form.password}
+              onChange={(e) => onChange('password', e.target.value)}
+              autoComplete="new-password"
+              error={errors.password}
+              variant="auth"
+            />
+
+            <Select
+              id="timezone"
+              label="Zona horaria"
+              value={form.timezone}
+              onChange={(e) => onChange('timezone', e.target.value)}
+              options={TIMEZONE_OPTS}
+              error={errors.timezone}
+              variant="auth"
+            />
+
+            <Select
+              id="language"
+              label="Idioma"
+              value={form.language ?? 'es'}
+              onChange={(e) => onChange('language', e.target.value)}
+              options={LANGUAGE_OPTS}
+              variant="auth"
+            />
 
             {apiError && (
               <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{apiError}</p>

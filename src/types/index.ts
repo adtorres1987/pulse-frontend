@@ -12,7 +12,7 @@ export interface ApiError {
 
 export interface ApiValidationError {
   success: false
-  errors: Record<string, string[]>
+  fieldErrors: Record<string, string[]>
 }
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError | ApiValidationError
@@ -26,14 +26,14 @@ export type HabitFrequency = 'daily' | 'weekly'
 export type InvestmentStrategy = 'conservative' | 'balanced' | 'long_term'
 
 // --- Auth ---
-export type UserRole = 'admin' | 'user'
+export type UserRole = 'super_admin' | 'admin' | 'support' | 'user'
 
 export interface AuthUser {
   id: string
   email: string
   language: Language
   timezone: string
-  role: UserRole
+  role: UserRole | null
 }
 
 export interface AuthLoginResponse {
@@ -62,6 +62,7 @@ export interface UserProfile {
 // --- Categories ---
 export interface Category {
   id: string
+  userId: string | null
   name: string
   icon: string | null
   type: TransactionType
@@ -145,36 +146,31 @@ export interface AdminUser {
   id: string
   email: string
   isActive: boolean
+  language: string
+  timezone: string
   createdAt: string
   person: {
     firstName: string
     lastName: string
     phone: string | null
+    country: string | null
+    avatarUrl: string | null
   } | null
   role: {
+    id: string
     name: RoleType
-  }
+  } | null
 }
 
 export interface AdminUserFilters {
-  page?: number
-  limit?: number
   search?: string
   isActive?: boolean
 }
 
 export interface UpdateAdminUserData {
+  isActive?: boolean
+  language?: Language
+  timezone?: string
   firstName?: string
   lastName?: string
-  phone?: string
-  email?: string
-  isActive?: boolean
-}
-
-export interface PaginatedResponse<T> {
-  users: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
 }

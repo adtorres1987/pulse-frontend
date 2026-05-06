@@ -2,10 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { forgotPassword } from '../api/auth'
 import { forgotPasswordSchema, type ForgotPasswordForm } from '../schemas'
+import { Input } from '../components/ui/Input'
 import logo from '../assets/logo.png'
-
-const inputClass =
-  'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition'
 
 export function ForgotPassword() {
   const [form, setForm] = useState<ForgotPasswordForm>({ email: '' })
@@ -78,23 +76,20 @@ export function ForgotPassword() {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Correo electrónico
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={form.email}
-                    onChange={(e) => {
-                      setForm({ email: e.target.value })
-                      setFieldError('')
-                    }}
-                    autoComplete="email"
-                    className={inputClass}
-                  />
-                  {fieldError && <p className="text-xs text-red-500 mt-1">{fieldError}</p>}
-                </div>
+                <Input
+                  id="email"
+                  label="Correo electrónico"
+                  type="email"
+                  placeholder="tu@correo.com"
+                  value={form.email}
+                  onChange={(e) => {
+                    setForm({ email: e.target.value })
+                    setFieldError('')
+                  }}
+                  autoComplete="email"
+                  error={fieldError}
+                  variant="auth"
+                />
 
                 {apiError && (
                   <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{apiError}</p>

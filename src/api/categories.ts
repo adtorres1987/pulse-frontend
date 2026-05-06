@@ -24,3 +24,17 @@ export async function updateCategory(id: string, payload: { name?: string; icon?
 export async function deleteCategory(id: string) {
   await axiosInstance.delete(`/categories/${id}`)
 }
+
+export async function createAdminCategory(payload: { name: string; icon?: string; type: TransactionType }) {
+  const res = await axiosInstance.post<{ success: true; data: Category }>('/categories/admin', payload)
+  return res.data.data
+}
+
+export async function updateAdminCategory(id: string, payload: { name?: string; icon?: string; type?: TransactionType }) {
+  const res = await axiosInstance.patch<{ success: true; data: Category }>(`/categories/admin/${id}`, payload)
+  return res.data.data
+}
+
+export async function deleteAdminCategory(id: string) {
+  await axiosInstance.delete(`/categories/admin/${id}`)
+}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { loginSchema, type LoginForm } from '../schemas'
-import { ZodError } from 'zod'
+import { Input } from '../components/ui/Input'
 import logo from '../assets/logo.png'
 
 export function Login() {
@@ -39,9 +39,7 @@ export function Login() {
       await login(result.data.email, result.data.password)
       navigate('/')
     } catch (err: unknown) {
-      if (err instanceof ZodError) {
-        setApiError('Error de validación')
-      } else if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { data?: { error?: string } } }
         setApiError(axiosErr.response?.data?.error ?? 'Credenciales inválidas')
       } else {
@@ -65,35 +63,29 @@ export function Login() {
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Iniciar sesión</h1>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email
-              </label>
-              <input
-                type="email"
-                placeholder="username@gmail.com"
-                value={form.email}
-                onChange={(e) => onChange('email', e.target.value)}
-                autoComplete="email"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-            </div>
+            <Input
+              id="email"
+              label="Email"
+              type="email"
+              placeholder="username@gmail.com"
+              value={form.email}
+              onChange={(e) => onChange('email', e.target.value)}
+              autoComplete="email"
+              error={errors.email}
+              variant="auth"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                placeholder="password"
-                value={form.password}
-                onChange={(e) => onChange('password', e.target.value)}
-                autoComplete="current-password"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
-              />
-              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
-            </div>
+            <Input
+              id="password"
+              label="Contraseña"
+              type="password"
+              placeholder="password"
+              value={form.password}
+              onChange={(e) => onChange('password', e.target.value)}
+              autoComplete="current-password"
+              error={errors.password}
+              variant="auth"
+            />
 
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-sm text-teal-500 hover:underline">
