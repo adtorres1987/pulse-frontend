@@ -174,3 +174,32 @@ export interface UpdateAdminUserData {
   firstName?: string
   lastName?: string
 }
+
+// --- App Config ---
+export interface AppConfig {
+  key: string
+  value: string
+  description: string | null
+  updatedAt: string
+}
+
+// --- Subscription Plans ---
+export interface SubscriptionPlan {
+  id: string
+  name: string
+  description: string | null
+  priceAmount: string
+  currency: string
+  intervalDays: number
+  isActive: boolean
+  stripePriceId: string | null
+  createdAt: string
+}
+
+// --- Permissions ---
+export interface Permission {
+  id: string
+  action: string
+  description: string | null
+  createdAt: string
+}

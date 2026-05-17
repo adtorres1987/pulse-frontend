@@ -21,3 +21,10 @@ export async function updateMe(payload: {
 export async function changePassword(currentPassword: string, newPassword: string, _confirmPassword?: string) {
   await axiosInstance.patch('/me/password', { currentPassword, newPassword })
 }
+
+export async function uploadAvatar(file: File): Promise<UserProfile> {
+  const fd = new FormData()
+  fd.append('image', file)
+  const res = await axiosInstance.post<{ success: true; data: UserProfile }>('/me/avatar', fd)
+  return res.data.data
+}

@@ -118,3 +118,28 @@ export const roleUpdateSchema = z.object({
   description: z.string().optional(),
 })
 export type RoleUpdateForm = z.infer<typeof roleUpdateSchema>
+
+// --- Permissions ---
+export const permissionSchema = z.object({
+  action: z.string().min(1, 'Requerido'),
+  description: z.string().optional(),
+})
+export type PermissionForm = z.infer<typeof permissionSchema>
+
+// --- Subscription Plans ---
+export const subscriptionPlanSchema = z.object({
+  name: z.string().min(1, 'Requerido'),
+  description: z.string().optional(),
+  priceAmount: z.number().positive('Debe ser positivo'),
+  currency: z.string().length(3, 'Código de 3 letras (ej: USD)'),
+  intervalDays: z.number().int().positive('Debe ser positivo'),
+  isActive: z.boolean().optional(),
+  stripePriceId: z.string().optional(),
+})
+export type SubscriptionPlanForm = z.infer<typeof subscriptionPlanSchema>
+
+// --- App Config ---
+export const appConfigValueSchema = z.object({
+  value: z.string().min(1, 'Requerido'),
+})
+export type AppConfigValueForm = z.infer<typeof appConfigValueSchema>

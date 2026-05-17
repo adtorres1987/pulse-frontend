@@ -16,6 +16,10 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+  // Let the browser set Content-Type (with multipart boundary) for FormData
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
   return config
 })
 

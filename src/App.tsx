@@ -15,6 +15,9 @@ import { Snapshots } from './pages/Snapshots'
 import { Categories } from './pages/Categories'
 import { Roles } from './pages/Roles'
 import { AdminUsers } from './pages/AdminUsers'
+import { Permissions } from './pages/Permissions'
+import { AdminAppConfig } from './pages/AdminAppConfig'
+import { AdminSubscriptionPlans } from './pages/AdminSubscriptionPlans'
 import { InvestmentProfiles } from './pages/InvestmentProfiles'
 import { Profile } from './pages/Profile'
 
@@ -41,7 +44,10 @@ function App() {
             <Route path="snapshots" element={<Snapshots />} />
             <Route path="categories" element={<AdminRoute><Categories /></AdminRoute>} />
             <Route path="roles" element={<AdminRoute><Roles /></AdminRoute>} />
+            <Route path="admin/permissions" element={<AdminRoute><Permissions /></AdminRoute>} />
             <Route path="admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="admin/subscription-plans" element={<AdminRoute><AdminSubscriptionPlans /></AdminRoute>} />
+            <Route path="admin/app-config" element={<AdminRoute><AdminAppConfig /></AdminRoute>} />
             <Route path="investment-profiles" element={<InvestmentProfiles />} />
             <Route path="profile" element={<Profile />} />
           </Route>

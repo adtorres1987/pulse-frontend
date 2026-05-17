@@ -9,8 +9,11 @@ const navItems = [
   { to: '/habits', label: 'Hábitos', icon: '✅', adminOnly: false },
   { to: '/snapshots', label: 'Snapshots', icon: '🧠', adminOnly: false },
   { to: '/categories', label: 'Categorías', icon: '🏷️', adminOnly: true },
-  { to: '/roles', label: 'Roles y permisos', icon: '🔐', adminOnly: true },
+  { to: '/roles', label: 'Roles', icon: '🔐', adminOnly: true },
+  { to: '/admin/permissions', label: 'Permisos', icon: '🛡️', adminOnly: true },
   { to: '/admin/users', label: 'Usuarios', icon: '👥', adminOnly: true },
+  { to: '/admin/subscription-plans', label: 'Planes', icon: '💳', adminOnly: true },
+  { to: '/admin/app-config', label: 'Config app', icon: '⚙️', adminOnly: true },
   { to: '/investment-profiles', label: 'Inversiones', icon: '📈', adminOnly: false },
   { to: '/profile', label: 'Perfil', icon: '👤', adminOnly: false },
 ]

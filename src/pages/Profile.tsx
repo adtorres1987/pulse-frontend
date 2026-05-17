@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { updateMe, changePassword } from '../api'
+import { updateMe, changePassword, uploadAvatar } from '../api'
 import { updateProfileSchema, changePasswordSchema, type UpdateProfileForm, type ChangePasswordForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
 export function Profile() {
   const { profile, refreshProfile } = useAuth()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarErr, setAvatarErr] = useState('')
 
   const [profileForm, setProfileForm] = useState<UpdateProfileForm>({
     firstName: profile?.person?.firstName ?? '',
@@ -14,6 +17,7 @@ export function Profile() {
     phone: profile?.person?.phone ?? '',
     birthDate: profile?.person?.birthDate?.slice(0, 10) ?? '',
     country: profile?.person?.country ?? '',
+    avatarUrl: profile?.person?.avatarUrl ?? '',
   })
   const [profileErrors, setProfileErrors] = useState<Partial<Record<keyof UpdateProfileForm, string>>>({})
   const [profileSaving, setProfileSaving] = useState(false)
@@ -82,12 +86,60 @@ export function Profile() {
     setPwErrors((p) => ({ ...p, [field]: '' }))
   }
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarErr('')
+    setAvatarUploading(true)
+    try {
+      const updated = await uploadAvatar(file)
+      setP('avatarUrl', updated.person?.avatarUrl ?? '')
+      await refreshProfile()
+    } catch {
+      setAvatarErr('Error al subir la imagen. Verifica que sea válida y no supere 5 MB.')
+    } finally {
+      setAvatarUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-lg">
       <h2 className="text-xl font-bold text-gray-900">Perfil</h2>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="font-semibold text-gray-800 mb-4">Información personal</h3>
+
+        {/* Avatar upload */}
+        <div className="flex items-center gap-4 mb-5">
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
+            {profileForm.avatarUrl ? (
+              <img src={profileForm.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl text-gray-400">👤</span>
+            )}
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="text-sm text-blue-600 hover:underline font-medium disabled:opacity-50"
+            >
+              {avatarUploading ? 'Subiendo...' : 'Cambiar foto'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+            <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP · Máx 5 MB</p>
+            {avatarErr && <p className="text-xs text-red-500 mt-0.5">{avatarErr}</p>}
+          </div>
+        </div>
+
         <form onSubmit={handleProfileSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Input id="firstName" label="Nombre" value={profileForm.firstName ?? ''} onChange={(e) => setP('firstName', e.target.value)} error={profileErrors.firstName} />

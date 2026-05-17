@@ -12,6 +12,27 @@ const STATUS_OPTS = [
   { value: 'false', label: 'Inactivos' },
 ]
 
+const LANGUAGE_OPTS = [
+  { value: 'es', label: 'Español' },
+  { value: 'en', label: 'English' },
+]
+
+const TIMEZONE_OPTS = [
+  { value: 'America/Mexico_City', label: 'Ciudad de México (CST)' },
+  { value: 'America/Cancun', label: 'Cancún (EST)' },
+  { value: 'America/Chihuahua', label: 'Chihuahua (MST)' },
+  { value: 'America/Tijuana', label: 'Tijuana (PST)' },
+  { value: 'America/Bogota', label: 'Bogotá (COT)' },
+  { value: 'America/Lima', label: 'Lima (PET)' },
+  { value: 'America/Santiago', label: 'Santiago (CLT)' },
+  { value: 'America/Buenos_Aires', label: 'Buenos Aires (ART)' },
+  { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
+  { value: 'America/New_York', label: 'Nueva York (ET)' },
+  { value: 'America/Los_Angeles', label: 'Los Ángeles (PT)' },
+  { value: 'Europe/Madrid', label: 'Madrid (CET)' },
+  { value: 'UTC', label: 'UTC' },
+]
+
 function fullName(user: AdminUser): string {
   if (!user.person) return '—'
   return `${user.person.firstName} ${user.person.lastName}`.trim()
@@ -29,6 +50,8 @@ const emptyForm = (user: AdminUser): UpdateAdminUserData => ({
   firstName: user.person?.firstName ?? '',
   lastName: user.person?.lastName ?? '',
   isActive: user.isActive,
+  language: user.language as UpdateAdminUserData['language'],
+  timezone: user.timezone,
 })
 
 export function AdminUsers() {
@@ -224,7 +247,7 @@ export function AdminUsers() {
                     <tr className="border-b border-gray-100 text-left">
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Correo</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Teléfono</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Rol</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Registro</th>
                       <th className="px-4 py-3" />
@@ -239,8 +262,14 @@ export function AdminUsers() {
                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                           {user.email}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                          {user.person?.phone ?? '—'}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {user.role ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {user.role.name}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -348,6 +377,27 @@ export function AdminUsers() {
                   setFormErrors((p) => ({ ...p, lastName: '' }))
                 }}
                 error={formErrors.lastName}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Select
+                id="edit-language"
+                label="Idioma"
+                value={form.language ?? 'es'}
+                options={LANGUAGE_OPTS}
+                onChange={(e) => setForm((p) => ({ ...p, language: e.target.value as UpdateAdminUserData['language'] }))}
+              />
+            </div>
+            <div className="flex-1">
+              <Select
+                id="edit-timezone"
+                label="Zona horaria"
+                value={form.timezone ?? 'America/Mexico_City'}
+                options={TIMEZONE_OPTS}
+                onChange={(e) => setForm((p) => ({ ...p, timezone: e.target.value }))}
               />
             </div>
           </div>

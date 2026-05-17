@@ -23,14 +23,22 @@ export function Categories() {
   const [errors, setErrors] = useState<Partial<Record<keyof CategoryForm, string>>>({})
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
+  const [loadErr, setLoadErr] = useState('')
+  const [deleteErr, setDeleteErr] = useState('')
   const [showPicker, setShowPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
 
   async function load() {
     setLoading(true)
-    const data = await getCategories()
-    setItems(data)
-    setLoading(false)
+    setLoadErr('')
+    try {
+      const data = await getCategories()
+      setItems(data)
+    } catch {
+      setLoadErr('Error al cargar las categorías. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -103,8 +111,13 @@ export function Categories() {
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar categoría?')) return
-    await deleteAdminCategory(id)
-    load()
+    setDeleteErr('')
+    try {
+      await deleteAdminCategory(id)
+      load()
+    } catch {
+      setDeleteErr('Error al eliminar la categoría. Intenta de nuevo.')
+    }
   }
 
   const expenses = items.filter((c) => c.type === 'expense')
@@ -145,9 +158,21 @@ export function Categories() {
         <Button onClick={openCreate}>+ Nueva</Button>
       </div>
 
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : (
+      {deleteErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{deleteErr}</p>
+        </div>
+      )}
+
+      {loading && <p className="text-gray-400 text-sm">Cargando...</p>}
+
+      {!loading && loadErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{loadErr}</p>
+        </div>
+      )}
+
+      {!loading && !loadErr && (
         <div className="space-y-6">
           <Section title="Gastos" list={expenses} />
           <Section title="Ingresos" list={incomes} />

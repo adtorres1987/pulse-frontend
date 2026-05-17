@@ -12,6 +12,7 @@ export function Dashboard() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [today, setToday] = useState<DailySnapshot | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -19,13 +20,15 @@ export function Dashboard() {
       getSavingGoals(),
       getHabits(true),
       getTodaySnapshot(),
-    ]).then(([txs, g, h, snap]) => {
-      setTransactions(txs)
-      setGoals(g)
-      setHabits(h)
-      setToday(snap)
-      setLoading(false)
-    })
+    ])
+      .then(([txs, g, h, snap]) => {
+        setTransactions(txs)
+        setGoals(g)
+        setHabits(h)
+        setToday(snap)
+      })
+      .catch(() => setError('Error al cargar el dashboard. Intenta recargar la página.'))
+      .finally(() => setLoading(false))
   }, [])
 
   const incomes = transactions.filter((t) => t.type === 'income')
@@ -65,8 +68,14 @@ export function Dashboard() {
     calm: '😌 Tranquilo', stressed: '😰 Estresado', confident: '💪 Seguro', neutral: '😐 Neutral',
   }
 
-  if (loading) {
-    return <p className="text-gray-400 text-sm">Cargando...</p>
+  if (loading) return <p className="text-gray-400 text-sm">Cargando...</p>
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <p className="text-sm text-red-600">{error}</p>
+      </div>
+    )
   }
 
   return (

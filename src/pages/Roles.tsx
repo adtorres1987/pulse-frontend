@@ -33,6 +33,7 @@ const emptyUpdate = (): RoleUpdateForm => ({ description: '' })
 export function Roles() {
   const [items, setItems] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Role | null>(null)
   const [createForm, setCreateForm] = useState<RoleCreateForm>(emptyCreate())
@@ -40,12 +41,19 @@ export function Roles() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
+  const [deleteErr, setDeleteErr] = useState('')
 
   async function load() {
     setLoading(true)
-    const data = await getRoles()
-    setItems(data)
-    setLoading(false)
+    setLoadErr('')
+    try {
+      const data = await getRoles()
+      setItems(data)
+    } catch {
+      setLoadErr('Error al cargar los roles. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -111,20 +119,42 @@ export function Roles() {
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar este rol?')) return
-    await deleteRole(id)
-    load()
+    setDeleteErr('')
+    try {
+      await deleteRole(id)
+      load()
+    } catch {
+      setDeleteErr('Error al eliminar el rol. Intenta de nuevo.')
+    }
   }
+
+  const existingRoleNames = new Set(items.map((r) => r.name))
+  const availableRoleOpts = ROLE_OPTS.filter((o) => !existingRoleNames.has(o.value as RoleType))
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">Roles y permisos</h2>
-        <Button onClick={openCreate}>+ Nuevo rol</Button>
+        <Button onClick={openCreate} disabled={availableRoleOpts.length === 0}>
+          + Nuevo rol
+        </Button>
       </div>
 
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : (
+      {loading && <p className="text-gray-400 text-sm">Cargando...</p>}
+
+      {!loading && loadErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{loadErr}</p>
+        </div>
+      )}
+
+      {deleteErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{deleteErr}</p>
+        </div>
+      )}
+
+      {!loading && !loadErr && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           {items.length === 0 && (
             <p className="text-gray-400 text-sm px-4 py-3">Sin roles registrados.</p>
@@ -150,9 +180,11 @@ export function Roles() {
                 <button onClick={() => openEdit(role)} className="text-xs text-blue-500 hover:underline">
                   Editar
                 </button>
-                <button onClick={() => handleDelete(role.id)} className="text-xs text-red-500 hover:underline">
-                  Eliminar
-                </button>
+                {role.name !== 'super_admin' && (
+                  <button onClick={() => handleDelete(role.id)} className="text-xs text-red-500 hover:underline">
+                    Eliminar
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -170,7 +202,7 @@ export function Roles() {
               id="rname"
               label="Rol"
               value={createForm.name}
-              options={ROLE_OPTS}
+              options={availableRoleOpts}
               onChange={(e) => {
                 setCreateForm((p) => ({ ...p, name: e.target.value as RoleType }))
                 setErrors((p) => ({ ...p, name: '' }))

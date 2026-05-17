@@ -6,18 +6,31 @@ import {
   deleteTransaction,
   getCategories,
 } from '../api'
-import type { Transaction, Category } from '../types'
+import type { TransactionFilters } from '../api/transactions'
+import type { Transaction, Category, TransactionType } from '../types'
 import { transactionSchema, type TransactionForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
 import { formatCurrency, formatDate } from '../utils/formatters'
 
+const EMOTION_LABELS: Record<string, string> = {
+  need: 'Necesidad',
+  impulse: 'Impulso',
+  emotional: 'Emocional',
+}
+
 const EMOTION_OPTS = [
   { value: '', label: '— sin etiqueta —' },
   { value: 'need', label: 'Necesidad' },
   { value: 'impulse', label: 'Impulso' },
   { value: 'emotional', label: 'Emocional' },
+]
+
+const TYPE_FILTER_OPTS = [
+  { value: '', label: 'Todos los tipos' },
+  { value: 'expense', label: 'Gastos' },
+  { value: 'income', label: 'Ingresos' },
 ]
 
 const TYPE_OPTS = [
@@ -38,6 +51,7 @@ export function Transactions() {
   const [items, setItems] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [form, setForm] = useState<TransactionForm>(emptyForm())
@@ -45,15 +59,42 @@ export function Transactions() {
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
 
-  async function load() {
-    setLoading(true)
-    const [txs, cats] = await Promise.all([getTransactions(), getCategories()])
-    setItems(txs)
-    setCategories(cats)
-    setLoading(false)
+  // Filters
+  const [typeFilter, setTypeFilter] = useState('')
+  const [catFilter, setCatFilter] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+
+  function buildFilters(): TransactionFilters {
+    const f: TransactionFilters = {}
+    if (typeFilter) f.type = typeFilter as TransactionType
+    if (catFilter) f.categoryId = catFilter
+    if (startDate) f.startDate = startDate
+    if (endDate) f.endDate = endDate
+    return f
   }
 
-  useEffect(() => { load() }, [])
+  async function loadTxs(filters?: TransactionFilters) {
+    setLoading(true)
+    setLoadErr('')
+    try {
+      const txs = await getTransactions(filters)
+      setItems(txs)
+    } catch {
+      setLoadErr('Error al cargar las transacciones. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    loadTxs(buildFilters())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeFilter, catFilter, startDate, endDate])
 
   function openCreate() {
     setForm(emptyForm())
@@ -107,7 +148,7 @@ export function Transactions() {
         await createTransaction(payload as Parameters<typeof createTransaction>[0])
       }
       setModal(null)
-      load()
+      loadTxs(buildFilters())
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -117,8 +158,12 @@ export function Transactions() {
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar transacción?')) return
-    await deleteTransaction(id)
-    load()
+    try {
+      await deleteTransaction(id)
+      loadTxs(buildFilters())
+    } catch {
+      setLoadErr('Error al eliminar la transacción.')
+    }
   }
 
   const catOpts = [
@@ -133,11 +178,62 @@ export function Transactions() {
         <Button onClick={openCreate}>+ Nueva</Button>
       </div>
 
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-3">
+        <div className="w-40">
+          <Select
+            id="filter-type"
+            options={TYPE_FILTER_OPTS}
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          />
+        </div>
+        <div className="w-52">
+          <Select
+            id="filter-cat"
+            options={[{ value: '', label: 'Todas las categorías' }, ...categories.map((c) => ({ value: c.id, label: `${c.icon ?? ''} ${c.name}` }))]}
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            id="filter-start"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-36"
+          />
+          <span className="text-gray-400 text-sm">—</span>
+          <Input
+            id="filter-end"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-36"
+          />
+        </div>
+        {(typeFilter || catFilter || startDate || endDate) && (
+          <button
+            onClick={() => { setTypeFilter(''); setCatFilter(''); setStartDate(''); setEndDate('') }}
+            className="text-xs text-gray-400 hover:text-gray-600"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {loadErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{loadErr}</p>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : items.length === 0 ? (
+      ) : !loadErr && items.length === 0 ? (
         <p className="text-gray-400 text-sm">Sin transacciones.</p>
-      ) : (
+      ) : !loadErr && (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
@@ -172,7 +268,9 @@ export function Transactions() {
                   <td className="px-4 py-3 text-gray-600">
                     {tx.category ? `${tx.category.icon ?? ''} ${tx.category.name}` : '—'}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 capitalize">{tx.emotionTag ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {tx.emotionTag ? EMOTION_LABELS[tx.emotionTag] : '—'}
+                  </td>
                   <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{tx.note ?? '—'}</td>
                   <td className="px-4 py-3 flex gap-2 justify-end">
                     <button onClick={() => openEdit(tx)} className="text-blue-500 hover:underline text-xs">Editar</button>
