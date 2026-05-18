@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { listClientUsers, updateClientUser, resetClientUserPassword } from '../api'
-import type { AdminUser, AdminUserFilters, UpdateAdminUserData } from '../types'
+import type { AdminUser, AdminUserFilters, AdminUserSubscription, UpdateAdminUserData } from '../types'
 import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
@@ -44,6 +44,56 @@ function formatDate(iso: string): string {
     month: 'short',
     year: 'numeric',
   })
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  trial:     'bg-amber-100 text-amber-700',
+  active:    'bg-green-100 text-green-700',
+  expired:   'bg-gray-100 text-gray-500',
+  cancelled: 'bg-red-100 text-red-600',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  trial:     'Trial',
+  active:    'Activa',
+  expired:   'Expirada',
+  cancelled: 'Cancelada',
+}
+
+function SubscriptionCell({ sub, groups }: { sub: AdminUserSubscription | null; groups: AdminUser['groupMemberships'] }) {
+  if (!sub) return <span className="text-xs text-gray-400">—</span>
+
+  const hasGroupDiscount = parseFloat(sub.discountPercent) > 0
+  const inGroups = groups.length > 0
+
+  return (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-xs font-medium text-gray-800 truncate max-w-[120px]">{sub.plan.name}</span>
+        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[sub.status] ?? 'bg-gray-100 text-gray-500'}`}>
+          {STATUS_LABELS[sub.status] ?? sub.status}
+        </span>
+      </div>
+      <div className="flex items-center gap-1 flex-wrap">
+        {inGroups ? (
+          groups.map((gm) => (
+            <span key={gm.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-600">
+              👥 {gm.group.name}
+              {gm.role === 'owner' && <span className="text-[9px] opacity-70">(admin)</span>}
+            </span>
+          ))
+        ) : (
+          <span className="text-[10px] text-gray-400">Individual</span>
+        )}
+        {hasGroupDiscount && (
+          <span className="text-[10px] text-green-600 font-medium">-{sub.discountPercent}%</span>
+        )}
+      </div>
+      <span className="text-[10px] text-gray-400">
+        Vence {formatDate(sub.currentPeriodEnd)}
+      </span>
+    </div>
+  )
 }
 
 const emptyForm = (user: AdminUser): UpdateAdminUserData => ({
@@ -247,7 +297,7 @@ export function AdminUsers() {
                     <tr className="border-b border-gray-100 text-left">
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Correo</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Rol</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Suscripción / Grupos</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Registro</th>
                       <th className="px-4 py-3" />
@@ -256,20 +306,19 @@ export function AdminUsers() {
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                          {fullName(user)}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                          {user.email}
-                        </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          {user.role ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <p className="font-medium text-gray-900">{fullName(user)}</p>
+                          {user.role && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 mt-0.5">
                               {user.role.name}
                             </span>
-                          ) : (
-                            <span className="text-gray-400 text-xs">—</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-sm">
+                          {user.email}
+                        </td>
+                        <td className="px-4 py-3">
+                          <SubscriptionCell sub={user.subscription} groups={user.groupMemberships ?? []} />
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -282,24 +331,26 @@ export function AdminUsers() {
                             {user.isActive ? 'Activo' : 'Inactivo'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-sm">
                           {formatDate(user.createdAt)}
                         </td>
-                        <td className="px-4 py-3 text-right flex items-center justify-end gap-3">
-                          <button
-                            onClick={() => openEdit(user)}
-                            className="text-xs text-blue-500 hover:underline"
-                          >
-                            Editar
-                          </button>
-                          {isSuperAdmin && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-3">
                             <button
-                              onClick={() => openResetPassword(user)}
-                              className="text-xs text-amber-500 hover:underline"
+                              onClick={() => openEdit(user)}
+                              className="text-xs text-blue-500 hover:underline"
                             >
-                              Contraseña
+                              Editar
                             </button>
-                          )}
+                            {isSuperAdmin && (
+                              <button
+                                onClick={() => openResetPassword(user)}
+                                className="text-xs text-amber-500 hover:underline"
+                              >
+                                Contraseña
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

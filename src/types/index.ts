@@ -41,6 +41,27 @@ export interface AuthLoginResponse {
   user: AuthUser
 }
 
+// --- Subscription (current user) ---
+export interface Subscription {
+  id: string
+  userId: string
+  planId: string
+  status: 'trial' | 'active' | 'expired' | 'cancelled'
+  trialEndsAt: string
+  currentPeriodStart: string
+  currentPeriodEnd: string
+  discountPercent: string
+  cancelledAt: string | null
+  createdAt: string
+  plan: {
+    id: string
+    name: string
+    priceAmount: string
+    currency: string
+    intervalDays: number
+  }
+}
+
 // --- Me (profile) ---
 export interface UserProfile {
   id: string
@@ -142,6 +163,30 @@ export interface Role {
 }
 
 // --- Admin Users ---
+export interface AdminUserSubscription {
+  id: string
+  status: 'trial' | 'active' | 'expired' | 'cancelled'
+  trialEndsAt: string
+  currentPeriodStart: string
+  currentPeriodEnd: string
+  discountPercent: string
+  cancelledAt: string | null
+  createdAt: string
+  plan: {
+    id: string
+    name: string
+    priceAmount: string
+    currency: string
+    intervalDays: number
+  }
+}
+
+export interface AdminUserGroup {
+  id: string
+  role: 'owner' | 'member'
+  group: { id: string; name: string }
+}
+
 export interface AdminUser {
   id: string
   email: string
@@ -160,6 +205,8 @@ export interface AdminUser {
     id: string
     name: RoleType
   } | null
+  subscription: AdminUserSubscription | null
+  groupMemberships: AdminUserGroup[]
 }
 
 export interface AdminUserFilters {

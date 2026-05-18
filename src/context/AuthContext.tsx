@@ -1,23 +1,31 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { login as apiLogin, logoutApi } from '../api/auth'
 import { getMe } from '../api/me'
-import type { AuthUser, UserProfile } from '../types'
+import { getMySubscription } from '../api/subscriptions'
+import type { AuthUser, UserProfile, Subscription } from '../types'
 
 interface AuthContextValue {
   user: AuthUser | null
   profile: UserProfile | null
+  subscription: Subscription | null
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   refreshProfile: () => Promise<void>
+  refreshSubscription: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+function needsSubscriptionCheck(role: string | null | undefined) {
+  return role === 'user'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -25,9 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem('user')
     if (token && savedUser) {
       const parsed = JSON.parse(savedUser)
-      setUser({ ...parsed, role: parsed.role ?? null })
-      getMe()
-        .then(setProfile)
+      const role = parsed.role ?? null
+      setUser({ ...parsed, role })
+      const subFetch = needsSubscriptionCheck(role) ? getMySubscription() : Promise.resolve(null)
+      Promise.all([getMe(), subFetch])
+        .then(([me, sub]) => {
+          setProfile(me)
+          setSubscription(sub)
+        })
         .catch(() => {
           localStorage.removeItem('token')
           localStorage.removeItem('user')
@@ -41,22 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const data = await apiLogin(email, password)
-    const user: AuthUser = { ...data.user, role: data.user.role ?? null }
+    const authUser: AuthUser = { ...data.user, role: data.user.role ?? null }
     localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(user))
-    setUser(user)
-    const me = await getMe()
+    localStorage.setItem('user', JSON.stringify(authUser))
+    setUser(authUser)
+    const subFetch = needsSubscriptionCheck(authUser.role) ? getMySubscription() : Promise.resolve(null)
+    const [me, sub] = await Promise.all([getMe(), subFetch])
     setProfile(me)
+    setSubscription(sub)
   }
 
   function logout() {
-    // Fire-and-forget: blacklist the token on the backend.
-    // State is cleared immediately so the UI doesn't wait on the network.
     logoutApi().catch(() => {})
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)
     setProfile(null)
+    setSubscription(null)
   }
 
   async function refreshProfile() {
@@ -64,9 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(me)
   }
 
+  async function refreshSubscription() {
+    if (!needsSubscriptionCheck(user?.role)) return
+    const sub = await getMySubscription()
+    setSubscription(sub)
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, isAuthenticated: !!user, isLoading, login, logout, refreshProfile }}
+      value={{ user, profile, subscription, isAuthenticated: !!user, isLoading, login, logout, refreshProfile, refreshSubscription }}
     >
       {children}
     </AuthContext.Provider>

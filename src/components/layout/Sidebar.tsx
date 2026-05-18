@@ -1,73 +1,75 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import logo from '../../assets/logo.png'
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: '📊', adminOnly: false },
-  { to: '/transactions', label: 'Transacciones', icon: '💸', adminOnly: false },
-  { to: '/saving-goals', label: 'Metas de ahorro', icon: '🎯', adminOnly: false },
-  { to: '/habits', label: 'Hábitos', icon: '✅', adminOnly: false },
-  { to: '/snapshots', label: 'Snapshots', icon: '🧠', adminOnly: false },
-  { to: '/categories', label: 'Categorías', icon: '🏷️', adminOnly: true },
-  { to: '/roles', label: 'Roles', icon: '🔐', adminOnly: true },
-  { to: '/admin/permissions', label: 'Permisos', icon: '🛡️', adminOnly: true },
-  { to: '/admin/users', label: 'Usuarios', icon: '👥', adminOnly: true },
-  { to: '/admin/subscription-plans', label: 'Planes', icon: '💳', adminOnly: true },
-  { to: '/admin/app-config', label: 'Config app', icon: '⚙️', adminOnly: true },
-  { to: '/investment-profiles', label: 'Inversiones', icon: '📈', adminOnly: false },
-  { to: '/profile', label: 'Perfil', icon: '👤', adminOnly: false },
+const userNavItems = [
+  { to: '/', label: 'Dashboard', icon: '📊' },
+  { to: '/transactions', label: 'Transacciones', icon: '💸' },
+  { to: '/saving-goals', label: 'Metas de ahorro', icon: '🎯' },
+  { to: '/habits', label: 'Hábitos', icon: '✅' },
+  { to: '/snapshots', label: 'Snapshots', icon: '🧠' },
+  { to: '/investment-profiles', label: 'Inversiones', icon: '📈' },
 ]
 
+const adminNavItems = [
+  { to: '/categories', label: 'Categorías', icon: '🏷️' },
+  { to: '/roles', label: 'Roles', icon: '🔐' },
+  { to: '/admin/permissions', label: 'Permisos', icon: '🛡️' },
+  { to: '/admin/users', label: 'Usuarios', icon: '👥' },
+  { to: '/admin/subscription-plans', label: 'Planes', icon: '💳' },
+  { to: '/admin/app-config', label: 'Config', icon: '⚙️' },
+]
+
+function NavItem({ to, label, icon }: { to: string; label: string; icon: string }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        `group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          isActive
+            ? 'bg-[#465fff]/10 text-[#465fff]'
+            : 'text-[#8A99AF] hover:bg-[#333A48] hover:text-white'
+        }`
+      }
+    >
+      <span className="text-base leading-none">{icon}</span>
+      {label}
+    </NavLink>
+  )
+}
+
+function NavGroup({ label, items }: { label: string; items: typeof userNavItems }) {
+  return (
+    <div className="mb-6">
+      <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-widest text-[#4B5563]">
+        {label}
+      </p>
+      <div className="space-y-0.5">
+        {items.map((item) => (
+          <NavItem key={item.to} {...item} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function Sidebar() {
-  const { user, profile, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
 
-  function handleLogout() {
-    logout()
-    navigate('/login')
-  }
-
   return (
-    <aside className="w-60 min-h-screen bg-white border-r border-gray-200 flex flex-col">
-      <div className="px-6 py-5 border-b border-gray-100">
+    <aside className="flex w-64 shrink-0 flex-col bg-[#1C2434] min-h-screen">
+      {/* Logo */}
+      <div className="flex h-16 items-center border-b border-[#2E3A4E] px-6">
         <img src={logo} alt="Pulso" className="h-8" />
-        {profile?.person && (
-          <p className="text-xs text-gray-500 mt-1 truncate">
-            {profile.person.firstName} {profile.person.lastName}
-          </p>
-        )}
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.filter((item) => !item.adminOnly || isAdmin).map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`
-            }
-          >
-            <span>{item.icon}</span>
-            {item.label}
-          </NavLink>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-4 py-5">
+        <NavGroup label="Menú" items={userNavItems} />
+        {isAdmin && <NavGroup label="Admin" items={adminNavItems} />}
       </nav>
-
-      <div className="px-3 py-4 border-t border-gray-100">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <span>🚪</span>
-          Cerrar sesión
-        </button>
-      </div>
     </aside>
   )
 }
