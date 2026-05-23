@@ -1,8 +1,17 @@
 import axiosInstance from './axiosInstance'
 import type { InvestmentProfile, InvestmentStrategy } from '../types'
 
-export async function getInvestmentProfiles() {
-  const res = await axiosInstance.get<{ success: true; data: InvestmentProfile[] }>('/investment-profiles')
+export interface PaginatedInvestmentProfiles {
+  items: InvestmentProfile[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getInvestmentProfiles(page = 1, limit = 20): Promise<PaginatedInvestmentProfiles> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedInvestmentProfiles }>('/investment-profiles', {
+    params: { page, limit },
+  })
   return res.data.data
 }
 

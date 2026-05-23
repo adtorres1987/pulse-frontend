@@ -5,6 +5,9 @@ import { roleCreateSchema, roleUpdateSchema, type RoleCreateForm, type RoleUpdat
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
+
+const LIMIT = 20
 
 const ROLE_OPTS = [
   { value: 'super_admin', label: 'Super Admin' },
@@ -32,6 +35,8 @@ const emptyUpdate = (): RoleUpdateForm => ({ description: '' })
 
 export function Roles() {
   const [items, setItems] = useState<Role[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
@@ -43,12 +48,13 @@ export function Roles() {
   const [apiErr, setApiErr] = useState('')
   const [deleteErr, setDeleteErr] = useState('')
 
-  async function load() {
+  async function load(p = page) {
     setLoading(true)
     setLoadErr('')
     try {
-      const data = await getRoles()
-      setItems(data)
+      const result = await getRoles(p, LIMIT)
+      setItems(result.items)
+      setTotal(result.total)
     } catch {
       setLoadErr('Error al cargar los roles. Intenta de nuevo.')
     } finally {
@@ -56,7 +62,7 @@ export function Roles() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(page) }, [page])
 
   function openCreate() {
     setCreateForm(emptyCreate())
@@ -90,7 +96,7 @@ export function Roles() {
         setSaving(true)
         await createRole({ ...result.data, description: result.data.description || undefined })
         setModal(null)
-        load()
+        load(page)
       } catch {
         setApiErr('Error al crear el rol')
       } finally {
@@ -108,7 +114,7 @@ export function Roles() {
         setSaving(true)
         await updateRole(editing.id, { description: result.data.description || undefined })
         setModal(null)
-        load()
+        load(page)
       } catch {
         setApiErr('Error al guardar')
       } finally {
@@ -122,7 +128,7 @@ export function Roles() {
     setDeleteErr('')
     try {
       await deleteRole(id)
-      load()
+      load(page)
     } catch {
       setDeleteErr('Error al eliminar el rol. Intenta de nuevo.')
     }
@@ -130,6 +136,45 @@ export function Roles() {
 
   const existingRoleNames = new Set(items.map((r) => r.name))
   const availableRoleOpts = ROLE_OPTS.filter((o) => !existingRoleNames.has(o.value as RoleType))
+
+  const columns: Column<Role>[] = [
+    {
+      key: 'name',
+      header: 'Rol',
+      render: (role) => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ROLE_COLORS[role.name]}`}>
+          {ROLE_LABELS[role.name]}
+        </span>
+      ),
+    },
+    {
+      key: 'description',
+      header: 'Descripción',
+      render: (role) => <span className="text-gray-600">{role.description ?? '—'}</span>,
+    },
+    {
+      key: 'permissions',
+      header: 'Permisos',
+      render: (role) => (
+        <span className="text-xs text-gray-400">
+          {role.permissions.length} permiso{role.permissions.length !== 1 ? 's' : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-20',
+      render: (role) => (
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => openEdit(role)} className="text-xs text-blue-500 hover:underline">Editar</button>
+          {role.name !== 'super_admin' && (
+            <button onClick={() => handleDelete(role.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
+          )}
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-4">
@@ -140,56 +185,24 @@ export function Roles() {
         </Button>
       </div>
 
-      {loading && <p className="text-gray-400 text-sm">Cargando...</p>}
-
-      {!loading && loadErr && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-600">{loadErr}</p>
-        </div>
-      )}
-
       {deleteErr && (
         <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           <p className="text-sm text-red-600">{deleteErr}</p>
         </div>
       )}
 
-      {!loading && !loadErr && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {items.length === 0 && (
-            <p className="text-gray-400 text-sm px-4 py-3">Sin roles registrados.</p>
-          )}
-          {items.map((role) => (
-            <div key={role.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0">
-              <div className="flex items-start gap-3">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-0.5 ${ROLE_COLORS[role.name]}`}>
-                  {ROLE_LABELS[role.name]}
-                </span>
-                <div>
-                  {role.description && (
-                    <p className="text-sm text-gray-600">{role.description}</p>
-                  )}
-                  {role.permissions.length > 0 && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {role.permissions.length} permiso{role.permissions.length !== 1 ? 's' : ''}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => openEdit(role)} className="text-xs text-blue-500 hover:underline">
-                  Editar
-                </button>
-                {role.name !== 'super_admin' && (
-                  <button onClick={() => handleDelete(role.id)} className="text-xs text-red-500 hover:underline">
-                    Eliminar
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(r) => r.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin roles registrados."
+        page={page}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       <Modal
         open={!!modal}

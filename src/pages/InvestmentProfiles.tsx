@@ -10,7 +10,10 @@ import { investmentProfileSchema, type InvestmentProfileForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { Pagination } from '../components/ui/Pagination'
 import { formatCurrency } from '../utils/formatters'
+
+const LIMIT = 20
 
 const STRATEGY_OPTS = [
   { value: 'conservative', label: 'Conservador' },
@@ -30,7 +33,10 @@ const emptyForm = (): InvestmentProfileForm => ({
 
 export function InvestmentProfiles() {
   const [items, setItems] = useState<InvestmentProfile[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
   const [editing, setEditing] = useState<InvestmentProfile | null>(null)
   const [form, setForm] = useState<InvestmentProfileForm>(emptyForm())
@@ -38,14 +44,21 @@ export function InvestmentProfiles() {
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
 
-  async function load() {
+  async function load(p = page) {
     setLoading(true)
-    const data = await getInvestmentProfiles()
-    setItems(data)
-    setLoading(false)
+    setLoadErr('')
+    try {
+      const result = await getInvestmentProfiles(p, LIMIT)
+      setItems(result.items)
+      setTotal(result.total)
+    } catch {
+      setLoadErr('Error al cargar los perfiles. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(page) }, [page])
 
   function openCreate() {
     setForm(emptyForm())
@@ -94,7 +107,7 @@ export function InvestmentProfiles() {
         await createInvestmentProfile(result.data)
       }
       setModal(null)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -105,7 +118,7 @@ export function InvestmentProfiles() {
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar perfil de inversión?')) return
     await deleteInvestmentProfile(id)
-    load()
+    load(page)
   }
 
   return (
@@ -115,36 +128,46 @@ export function InvestmentProfiles() {
         <Button onClick={openCreate}>+ Nuevo perfil</Button>
       </div>
 
+      {loadErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{loadErr}</p>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-gray-400 text-sm">Cargando...</p>
       ) : items.length === 0 ? (
         <p className="text-gray-400 text-sm">Sin perfiles de inversión.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((profile) => (
-            <div key={profile.id} className="bg-white rounded-xl shadow-sm p-5 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                    {strategyLabel[profile.strategy]}
-                  </span>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((profile) => (
+              <div key={profile.id} className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wide text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                      {strategyLabel[profile.strategy]}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => openEdit(profile)} className="text-xs text-blue-500 hover:underline">Editar</button>
+                    <button onClick={() => handleDelete(profile.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => openEdit(profile)} className="text-xs text-blue-500 hover:underline">Editar</button>
-                  <button onClick={() => handleDelete(profile.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Monto mensual</p>
+                  <p className="text-xl font-bold text-gray-900">{formatCurrency(parseFloat(profile.monthlyAmount))}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500">Retorno esperado</p>
+                  <p className="text-lg font-semibold text-green-600">{parseFloat(profile.expectedReturn).toFixed(2)}%</p>
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">Monto mensual</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(parseFloat(profile.monthlyAmount))}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">Retorno esperado</p>
-                <p className="text-lg font-semibold text-green-600">{parseFloat(profile.expectedReturn).toFixed(2)}%</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <Pagination page={page} total={total} limit={LIMIT} onPageChange={setPage} />
+        </>
       )}
 
       <Modal

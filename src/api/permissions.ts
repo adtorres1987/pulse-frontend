@@ -1,8 +1,17 @@
 import axiosInstance from './axiosInstance'
 import type { Permission } from '../types'
 
-export async function getPermissions(): Promise<Permission[]> {
-  const res = await axiosInstance.get('/permissions')
+export interface PaginatedPermissions {
+  items: Permission[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getPermissions(page = 1, limit = 20): Promise<PaginatedPermissions> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedPermissions }>('/permissions', {
+    params: { page, limit },
+  })
   return res.data.data
 }
 

@@ -5,7 +5,10 @@ import { snapshotSchema, type SnapshotForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input, Select, Textarea } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
 import { formatDate } from '../utils/formatters'
+
+const LIMIT = 20
 
 const MOOD_OPTS = [
   { value: '', label: '— sin estado de ánimo —' },
@@ -15,26 +18,40 @@ const MOOD_OPTS = [
   { value: 'neutral', label: '😐 Neutral' },
 ]
 
+const moodLabel: Record<string, string> = {
+  calm: '😌 Tranquilo', stressed: '😰 Estresado', confident: '💪 Seguro', neutral: '😐 Neutral',
+}
+
 const emptyForm = (): SnapshotForm => ({ mood: undefined, reflection: '', consciousScore: undefined })
 
 export function Snapshots() {
   const [items, setItems] = useState<DailySnapshot[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [today, setToday] = useState<DailySnapshot | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState<SnapshotForm>(emptyForm())
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
 
-  async function load() {
+  async function load(p = page) {
     setLoading(true)
-    const [all, todaySnap] = await Promise.all([getSnapshots(), getTodaySnapshot()])
-    setItems(all)
-    setToday(todaySnap)
-    setLoading(false)
+    setLoadErr('')
+    try {
+      const [result, todaySnap] = await Promise.all([getSnapshots(p, LIMIT), getTodaySnapshot()])
+      setItems(result.items)
+      setTotal(result.total)
+      setToday(todaySnap)
+    } catch {
+      setLoadErr('Error al cargar los snapshots. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(page) }, [page])
 
   function openModal() {
     if (today) {
@@ -71,7 +88,7 @@ export function Snapshots() {
         await createSnapshot(result.data)
       }
       setModal(false)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -79,9 +96,29 @@ export function Snapshots() {
     }
   }
 
-  const moodLabel: Record<string, string> = {
-    calm: '😌 Tranquilo', stressed: '😰 Estresado', confident: '💪 Seguro', neutral: '😐 Neutral',
-  }
+  const columns: Column<DailySnapshot>[] = [
+    {
+      key: 'date',
+      header: 'Fecha',
+      render: (s) => <span className="text-gray-500 whitespace-nowrap">{formatDate(s.date)}</span>,
+    },
+    {
+      key: 'mood',
+      header: 'Estado de ánimo',
+      render: (s) => <span>{s.mood ? moodLabel[s.mood] : '—'}</span>,
+    },
+    {
+      key: 'score',
+      header: 'Puntaje',
+      render: (s) => <span>{s.consciousScore ? `${s.consciousScore}/10` : '—'}</span>,
+    },
+    {
+      key: 'reflection',
+      header: 'Reflexión',
+      className: 'max-w-xs truncate text-gray-500',
+      render: (s) => <>{s.reflection ?? '—'}</>,
+    },
+  ]
 
   return (
     <div className="space-y-4">
@@ -101,34 +138,18 @@ export function Snapshots() {
         </div>
       )}
 
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : items.length === 0 ? (
-        <p className="text-gray-400 text-sm">Sin snapshots registrados.</p>
-      ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">Fecha</th>
-                <th className="px-4 py-3 text-left">Estado de ánimo</th>
-                <th className="px-4 py-3 text-left">Puntaje</th>
-                <th className="px-4 py-3 text-left">Reflexión</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-500">{formatDate(s.date)}</td>
-                  <td className="px-4 py-3">{s.mood ? moodLabel[s.mood] : '—'}</td>
-                  <td className="px-4 py-3">{s.consciousScore ? `${s.consciousScore}/10` : '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{s.reflection ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(s) => s.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin snapshots registrados."
+        page={page}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       <Modal open={modal} onClose={() => setModal(false)} title={today ? 'Editar snapshot de hoy' : 'Nuevo snapshot'}>
         <form onSubmit={handleSubmit} className="space-y-3">

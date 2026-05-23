@@ -1,8 +1,17 @@
 import axiosInstance from './axiosInstance'
 import type { DailySnapshot, Mood } from '../types'
 
-export async function getSnapshots() {
-  const res = await axiosInstance.get<{ success: true; data: DailySnapshot[] }>('/snapshots')
+export interface PaginatedSnapshots {
+  items: DailySnapshot[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getSnapshots(page = 1, limit = 20): Promise<PaginatedSnapshots> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedSnapshots }>('/snapshots', {
+    params: { page, limit },
+  })
   return res.data.data
 }
 

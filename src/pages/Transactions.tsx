@@ -48,8 +48,12 @@ const emptyForm = (): TransactionForm => ({
   categoryId: '',
 })
 
+const LIMIT = 20
+
 export function Transactions() {
   const [items, setItems] = useState<Transaction[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [loadErr, setLoadErr] = useState('')
@@ -66,8 +70,8 @@ export function Transactions() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
-  function buildFilters(): TransactionFilters {
-    const f: TransactionFilters = {}
+  function buildFilters(p = page): TransactionFilters {
+    const f: TransactionFilters = { page: p, limit: LIMIT }
     if (typeFilter) f.type = typeFilter as TransactionType
     if (catFilter) f.categoryId = catFilter
     if (startDate) f.startDate = startDate
@@ -79,8 +83,9 @@ export function Transactions() {
     setLoading(true)
     setLoadErr('')
     try {
-      const txs = await getTransactions(filters)
-      setItems(txs)
+      const result = await getTransactions(filters)
+      setItems(result.items)
+      setTotal(result.total)
     } catch {
       setLoadErr('Error al cargar las transacciones. Intenta de nuevo.')
     } finally {
@@ -93,9 +98,15 @@ export function Transactions() {
   }, [])
 
   useEffect(() => {
-    loadTxs(buildFilters())
+    setPage(1)
+    loadTxs(buildFilters(1))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeFilter, catFilter, startDate, endDate])
+
+  useEffect(() => {
+    loadTxs(buildFilters(page))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   function openCreate() {
     setForm(emptyForm())
@@ -149,7 +160,7 @@ export function Transactions() {
         await createTransaction(payload as Parameters<typeof createTransaction>[0])
       }
       setModal(null)
-      loadTxs(buildFilters())
+      loadTxs(buildFilters(page))
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -161,7 +172,7 @@ export function Transactions() {
     if (!confirm('¿Eliminar transacción?')) return
     try {
       await deleteTransaction(id)
-      loadTxs(buildFilters())
+      loadTxs(buildFilters(page))
     } catch {
       setLoadErr('Error al eliminar la transacción.')
     }
@@ -284,6 +295,10 @@ export function Transactions() {
         loading={loading}
         error={loadErr}
         emptyMessage="Sin transacciones."
+        page={page}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
       />
 
       <Modal

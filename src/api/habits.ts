@@ -1,9 +1,20 @@
 import axiosInstance from './axiosInstance'
 import type { Habit, HabitLog, HabitFrequency } from '../types'
 
-export async function getHabits(active?: boolean) {
-  const res = await axiosInstance.get<{ success: true; data: Habit[] }>('/habits', {
-    params: active !== undefined ? { active: String(active) } : undefined,
+export interface PaginatedHabits {
+  items: Habit[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getHabits(active?: boolean, page = 1, limit = 20): Promise<PaginatedHabits> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedHabits }>('/habits', {
+    params: {
+      ...(active !== undefined ? { active: String(active) } : {}),
+      page,
+      limit,
+    },
   })
   return res.data.data
 }

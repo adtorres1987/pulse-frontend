@@ -7,10 +7,19 @@ export interface TransactionFilters {
   emotionTag?: EmotionTag
   startDate?: string
   endDate?: string
+  page?: number
+  limit?: number
 }
 
-export async function getTransactions(filters?: TransactionFilters) {
-  const res = await axiosInstance.get<{ success: true; data: Transaction[] }>('/transactions', {
+export interface PaginatedTransactions {
+  items: Transaction[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getTransactions(filters?: TransactionFilters): Promise<PaginatedTransactions> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedTransactions }>('/transactions', {
     params: filters,
   })
   return res.data.data

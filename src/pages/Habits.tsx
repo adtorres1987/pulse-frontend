@@ -5,17 +5,30 @@ import { habitSchema, type HabitForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
+
+const LIMIT = 20
 
 const FREQ_OPTS = [
   { value: 'daily', label: 'Diario' },
   { value: 'weekly', label: 'Semanal' },
 ]
 
+const ACTIVE_FILTER_OPTS = [
+  { value: '', label: 'Todos' },
+  { value: 'true', label: 'Activos' },
+  { value: 'false', label: 'Archivados' },
+]
+
 const emptyForm = (): HabitForm => ({ name: '', frequency: 'daily' })
 
 export function Habits() {
   const [items, setItems] = useState<Habit[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [activeFilter, setActiveFilter] = useState('true')
   const [loading, setLoading] = useState(true)
+  const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Habit | null>(null)
   const [form, setForm] = useState<HabitForm>(emptyForm())
@@ -23,14 +36,36 @@ export function Habits() {
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
 
-  async function load() {
-    setLoading(true)
-    const data = await getHabits()
-    setItems(data)
-    setLoading(false)
+  function activeParam(): boolean | undefined {
+    if (activeFilter === 'true') return true
+    if (activeFilter === 'false') return false
+    return undefined
   }
 
-  useEffect(() => { load() }, [])
+  async function load(p = page) {
+    setLoading(true)
+    setLoadErr('')
+    try {
+      const result = await getHabits(activeParam(), p, LIMIT)
+      setItems(result.items)
+      setTotal(result.total)
+    } catch {
+      setLoadErr('Error al cargar los hábitos. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    setPage(1)
+    load(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilter])
+
+  useEffect(() => {
+    load(page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   function openCreate() {
     setForm(emptyForm())
@@ -71,7 +106,7 @@ export function Habits() {
         await createHabit(result.data)
       }
       setModal(null)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -81,22 +116,62 @@ export function Habits() {
 
   async function handleToggleActive(habit: Habit) {
     await updateHabit(habit.id, { active: !habit.active })
-    load()
+    load(page)
   }
 
   async function handleLogToday(habit: Habit) {
     await logHabit(habit.id, true)
-    load()
+    load(page)
   }
 
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar hábito?')) return
     await deleteHabit(id)
-    load()
+    load(page)
   }
 
-  const active = items.filter((h) => h.active)
-  const archived = items.filter((h) => !h.active)
+  const columns: Column<Habit>[] = [
+    {
+      key: 'name',
+      header: 'Nombre',
+      render: (h) => <span className="font-medium text-gray-900">{h.name}</span>,
+    },
+    {
+      key: 'frequency',
+      header: 'Frecuencia',
+      render: (h) => (
+        <span className="text-sm text-gray-500">{h.frequency === 'daily' ? 'Diario' : 'Semanal'}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      render: (h) => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${h.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+          {h.active ? 'Activo' : 'Archivado'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-40',
+      render: (h) => (
+        <div className="flex gap-3 justify-end">
+          {h.active && (
+            <button onClick={() => handleLogToday(h)} className="text-xs text-green-600 hover:underline">
+              ✓ Hoy
+            </button>
+          )}
+          <button onClick={() => openEdit(h)} className="text-xs text-blue-500 hover:underline">Editar</button>
+          <button onClick={() => handleToggleActive(h)} className="text-xs text-yellow-500 hover:underline">
+            {h.active ? 'Archivar' : 'Restaurar'}
+          </button>
+          <button onClick={() => handleDelete(h.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-4">
@@ -105,54 +180,27 @@ export function Habits() {
         <Button onClick={openCreate}>+ Nuevo hábito</Button>
       </div>
 
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : (
-        <>
-          {active.length === 0 && <p className="text-gray-400 text-sm">Sin hábitos activos.</p>}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {active.map((habit) => (
-              <div key={habit.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0">
-                <div>
-                  <p className="font-medium text-gray-900">{habit.name}</p>
-                  <p className="text-xs text-gray-400 capitalize">{habit.frequency === 'daily' ? 'Diario' : 'Semanal'}</p>
-                </div>
-                <div className="flex gap-2 items-center">
-                  <button
-                    onClick={() => handleLogToday(habit)}
-                    className="text-xs text-green-600 hover:underline"
-                  >
-                    ✓ Hoy
-                  </button>
-                  <button onClick={() => openEdit(habit)} className="text-xs text-blue-500 hover:underline">Editar</button>
-                  <button onClick={() => handleToggleActive(habit)} className="text-xs text-yellow-500 hover:underline">Archivar</button>
-                  <button onClick={() => handleDelete(habit.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
-                </div>
-              </div>
-            ))}
-          </div>
+      <div className="w-44">
+        <Select
+          id="habit-filter"
+          options={ACTIVE_FILTER_OPTS}
+          value={activeFilter}
+          onChange={(e) => setActiveFilter(e.target.value)}
+        />
+      </div>
 
-          {archived.length > 0 && (
-            <>
-              <h3 className="text-sm font-medium text-gray-400 mt-4">Archivados</h3>
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden opacity-60">
-                {archived.map((habit) => (
-                  <div key={habit.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0">
-                    <div>
-                      <p className="font-medium text-gray-500">{habit.name}</p>
-                      <p className="text-xs text-gray-400 capitalize">{habit.frequency === 'daily' ? 'Diario' : 'Semanal'}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleToggleActive(habit)} className="text-xs text-blue-500 hover:underline">Restaurar</button>
-                      <button onClick={() => handleDelete(habit.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </>
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(h) => h.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin hábitos."
+        page={page}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       <Modal
         open={!!modal}

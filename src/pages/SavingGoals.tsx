@@ -11,13 +11,19 @@ import { savingGoalSchema, depositSchema, type SavingGoalForm, type DepositForm 
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { Pagination } from '../components/ui/Pagination'
 import { formatCurrency } from '../utils/formatters'
+
+const LIMIT = 20
 
 const emptyForm = (): SavingGoalForm => ({ name: '', targetAmount: 0, targetDate: '' })
 
 export function SavingGoals() {
   const [items, setItems] = useState<SavingGoal[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadErr, setLoadErr] = useState('')
   const [modal, setModal] = useState<'create' | 'edit' | 'deposit' | null>(null)
   const [editing, setEditing] = useState<SavingGoal | null>(null)
   const [form, setForm] = useState<SavingGoalForm>(emptyForm())
@@ -26,14 +32,21 @@ export function SavingGoals() {
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
 
-  async function load() {
+  async function load(p = page) {
     setLoading(true)
-    const data = await getSavingGoals()
-    setItems(data)
-    setLoading(false)
+    setLoadErr('')
+    try {
+      const result = await getSavingGoals(p, LIMIT)
+      setItems(result.items)
+      setTotal(result.total)
+    } catch {
+      setLoadErr('Error al cargar las metas. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(page) }, [page])
 
   function openCreate() {
     setForm(emptyForm())
@@ -89,7 +102,7 @@ export function SavingGoals() {
         await createSavingGoal(payload)
       }
       setModal(null)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -106,7 +119,7 @@ export function SavingGoals() {
       setSaving(true)
       await depositToGoal(editing!.id, result.data.amount)
       setModal(null)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al depositar')
     } finally {
@@ -117,7 +130,7 @@ export function SavingGoals() {
   async function handleDelete(id: string) {
     if (!confirm('¿Eliminar meta?')) return
     await deleteSavingGoal(id)
-    load()
+    load(page)
   }
 
   return (
@@ -127,45 +140,55 @@ export function SavingGoals() {
         <Button onClick={openCreate}>+ Nueva meta</Button>
       </div>
 
+      {loadErr && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-600">{loadErr}</p>
+        </div>
+      )}
+
       {loading ? (
         <p className="text-gray-400 text-sm">Cargando...</p>
       ) : items.length === 0 ? (
         <p className="text-gray-400 text-sm">Sin metas de ahorro.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((goal) => {
-            const current = parseFloat(goal.currentAmount)
-            const target = parseFloat(goal.targetAmount)
-            const pct = Math.min(100, Math.round((current / target) * 100))
-            return (
-              <div key={goal.id} className="bg-white rounded-xl shadow-sm p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-gray-900">{goal.name}</h3>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(goal)} className="text-blue-500 text-xs hover:underline">Editar</button>
-                    <button onClick={() => handleDelete(goal.id)} className="text-red-500 text-xs hover:underline">Eliminar</button>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((goal) => {
+              const current = parseFloat(goal.currentAmount)
+              const target = parseFloat(goal.targetAmount)
+              const pct = Math.min(100, Math.round((current / target) * 100))
+              return (
+                <div key={goal.id} className="bg-white rounded-xl shadow-sm p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <h3 className="font-semibold text-gray-900">{goal.name}</h3>
+                    <div className="flex gap-1">
+                      <button onClick={() => openEdit(goal)} className="text-blue-500 text-xs hover:underline">Editar</button>
+                      <button onClick={() => handleDelete(goal.id)} className="text-red-500 text-xs hover:underline">Eliminar</button>
+                    </div>
                   </div>
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>{formatCurrency(current)}</span>
+                      <span>{formatCurrency(target)}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">{pct}% completado</p>
+                  </div>
+                  {goal.targetDate && (
+                    <p className="text-xs text-gray-500">Fecha límite: {goal.targetDate.slice(0, 10)}</p>
+                  )}
+                  <Button variant="secondary" className="w-full text-xs" onClick={() => openDeposit(goal)}>
+                    + Depositar
+                  </Button>
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>{formatCurrency(current)}</span>
-                    <span>{formatCurrency(target)}</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">{pct}% completado</p>
-                </div>
-                {goal.targetDate && (
-                  <p className="text-xs text-gray-500">Fecha límite: {goal.targetDate.slice(0, 10)}</p>
-                )}
-                <Button variant="secondary" className="w-full text-xs" onClick={() => openDeposit(goal)}>
-                  + Depositar
-                </Button>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+
+          <Pagination page={page} total={total} limit={LIMIT} onPageChange={setPage} />
+        </>
       )}
 
       <Modal

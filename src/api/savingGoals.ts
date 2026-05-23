@@ -1,8 +1,17 @@
 import axiosInstance from './axiosInstance'
 import type { SavingGoal } from '../types'
 
-export async function getSavingGoals() {
-  const res = await axiosInstance.get<{ success: true; data: SavingGoal[] }>('/saving-goals')
+export interface PaginatedSavingGoals {
+  items: SavingGoal[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getSavingGoals(page = 1, limit = 20): Promise<PaginatedSavingGoals> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedSavingGoals }>('/saving-goals', {
+    params: { page, limit },
+  })
   return res.data.data
 }
 

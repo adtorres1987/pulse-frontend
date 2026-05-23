@@ -23,15 +23,15 @@ export function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      getTransactions(),
-      getSavingGoals(),
-      getHabits(true),
+      getTransactions({ limit: 100 }),
+      getSavingGoals(1, 100),
+      getHabits(true, 1, 100),
       getTodaySnapshot(),
     ])
       .then(([txs, g, h, snap]) => {
-        setTransactions(txs)
-        setGoals(g)
-        setHabits(h)
+        setTransactions(txs.items)
+        setGoals(g.items)
+        setHabits(h.items)
         setToday(snap)
       })
       .catch(() => setError('Error al cargar el dashboard. Intenta recargar la página.'))

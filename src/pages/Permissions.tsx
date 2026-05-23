@@ -5,11 +5,16 @@ import { permissionSchema, type PermissionForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
+
+const LIMIT = 20
 
 const emptyForm = (): PermissionForm => ({ action: '', description: '' })
 
 export function Permissions() {
   const [items, setItems] = useState<Permission[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [loadErr, setLoadErr] = useState('')
   const [deleteErr, setDeleteErr] = useState('')
@@ -20,12 +25,13 @@ export function Permissions() {
   const [saving, setSaving] = useState(false)
   const [apiErr, setApiErr] = useState('')
 
-  async function load() {
+  async function load(p = page) {
     setLoading(true)
     setLoadErr('')
     try {
-      const data = await getPermissions()
-      setItems(data)
+      const result = await getPermissions(p, LIMIT)
+      setItems(result.items)
+      setTotal(result.total)
     } catch {
       setLoadErr('Error al cargar los permisos. Intenta de nuevo.')
     } finally {
@@ -33,7 +39,7 @@ export function Permissions() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(page) }, [page])
 
   function openCreate() {
     setForm(emptyForm())
@@ -78,7 +84,7 @@ export function Permissions() {
         await createPermission(payload)
       }
       setModal(null)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -91,11 +97,44 @@ export function Permissions() {
     setDeleteErr('')
     try {
       await deletePermission(id)
-      load()
+      load(page)
     } catch {
       setDeleteErr('Error al eliminar el permiso. Intenta de nuevo.')
     }
   }
+
+  const columns: Column<Permission>[] = [
+    {
+      key: 'action',
+      header: 'Acción',
+      render: (perm) => (
+        <code className="text-xs bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded">
+          {perm.action}
+        </code>
+      ),
+    },
+    {
+      key: 'description',
+      header: 'Descripción',
+      render: (perm) => <span className="text-gray-500">{perm.description ?? '—'}</span>,
+    },
+    {
+      key: 'createdAt',
+      header: 'Creado',
+      render: (perm) => <span className="text-gray-400 text-xs">{perm.createdAt.slice(0, 10)}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-20',
+      render: (perm) => (
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => openEdit(perm)} className="text-blue-500 hover:underline text-xs">Editar</button>
+          <button onClick={() => handleDelete(perm.id)} className="text-red-500 hover:underline text-xs">Eliminar</button>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-4">
@@ -104,53 +143,24 @@ export function Permissions() {
         <Button onClick={openCreate}>+ Nuevo</Button>
       </div>
 
-      {loadErr && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-600">{loadErr}</p>
-        </div>
-      )}
-
       {deleteErr && (
         <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           <p className="text-sm text-red-600">{deleteErr}</p>
         </div>
       )}
 
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : !loadErr && items.length === 0 ? (
-        <p className="text-gray-400 text-sm">Sin permisos registrados.</p>
-      ) : !loadErr && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">Acción</th>
-                <th className="px-4 py-3 text-left">Descripción</th>
-                <th className="px-4 py-3 text-left">Creado</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.map((perm) => (
-                <tr key={perm.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <code className="text-xs bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded">
-                      {perm.action}
-                    </code>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{perm.description ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{perm.createdAt.slice(0, 10)}</td>
-                  <td className="px-4 py-3 flex gap-2 justify-end">
-                    <button onClick={() => openEdit(perm)} className="text-blue-500 hover:underline text-xs">Editar</button>
-                    <button onClick={() => handleDelete(perm.id)} className="text-red-500 hover:underline text-xs">Eliminar</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(p) => p.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin permisos registrados."
+        page={page}
+        total={total}
+        limit={LIMIT}
+        onPageChange={setPage}
+      />
 
       <Modal
         open={!!modal}

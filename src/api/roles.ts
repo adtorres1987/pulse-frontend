@@ -1,8 +1,17 @@
 import axiosInstance from './axiosInstance'
 import type { Role } from '../types'
 
-export async function getRoles() {
-  const res = await axiosInstance.get<{ success: true; data: Role[] }>('/roles')
+export interface PaginatedRoles {
+  items: Role[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getRoles(page = 1, limit = 20): Promise<PaginatedRoles> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedRoles }>('/roles', {
+    params: { page, limit },
+  })
   return res.data.data
 }
 
