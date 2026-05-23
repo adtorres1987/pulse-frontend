@@ -1,8 +1,17 @@
 import axiosInstance from './axiosInstance'
 import type { Category, TransactionType } from '../types'
 
-export async function getCategories() {
-  const res = await axiosInstance.get<{ success: true; data: Category[] }>('/categories')
+export interface PaginatedCategories {
+  items: Category[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getCategories(page = 1, limit = 10): Promise<PaginatedCategories> {
+  const res = await axiosInstance.get<{ success: true; data: PaginatedCategories }>('/categories', {
+    params: { page, limit },
+  })
   return res.data.data
 }
 

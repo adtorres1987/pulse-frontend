@@ -14,8 +14,12 @@ const TYPE_OPTS = [
 
 const emptyForm = (): CategoryForm => ({ name: '', icon: '', type: 'expense' })
 
+const LIMIT = 10
+
 export function Categories() {
   const [items, setItems] = useState<Category[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<'create' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Category | null>(null)
@@ -28,12 +32,13 @@ export function Categories() {
   const [showPicker, setShowPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
 
-  async function load() {
+  async function load(p = page) {
     setLoading(true)
     setLoadErr('')
     try {
-      const data = await getCategories()
-      setItems(data)
+      const data = await getCategories(p, LIMIT)
+      setItems(data.items)
+      setTotal(data.total)
     } catch {
       setLoadErr('Error al cargar las categorías. Intenta de nuevo.')
     } finally {
@@ -41,7 +46,7 @@ export function Categories() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(page) }, [page])
 
   // Close picker when clicking outside
   useEffect(() => {
@@ -101,7 +106,7 @@ export function Categories() {
         await createAdminCategory(payload)
       }
       setModal(null)
-      load()
+      load(page)
     } catch {
       setApiErr('Error al guardar')
     } finally {
@@ -114,7 +119,10 @@ export function Categories() {
     setDeleteErr('')
     try {
       await deleteAdminCategory(id)
-      load()
+      const lastPage = Math.max(1, Math.ceil((total - 1) / LIMIT))
+      const nextPage = Math.min(page, lastPage)
+      if (nextPage !== page) setPage(nextPage)
+      else load(page)
     } catch {
       setDeleteErr('Error al eliminar la categoría. Intenta de nuevo.')
     }
@@ -176,6 +184,28 @@ export function Categories() {
         <div className="space-y-6">
           <Section title="Gastos" list={expenses} />
           <Section title="Ingresos" list={incomes} />
+
+          {total > LIMIT && (
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <span>Página {page} de {Math.ceil(total / LIMIT)} ({total} total)</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= Math.ceil(total / LIMIT)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

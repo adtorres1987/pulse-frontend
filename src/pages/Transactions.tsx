@@ -88,7 +88,7 @@ export function Transactions() {
   }
 
   useEffect(() => {
-    getCategories().then(setCategories).catch(() => {})
+    getCategories(1, 100).then((r) => setCategories(r.items)).catch(() => {})
   }, [])
 
   useEffect(() => {
