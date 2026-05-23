@@ -5,6 +5,7 @@ import { subscriptionPlanSchema, type SubscriptionPlanForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
 
 const emptyForm = (): SubscriptionPlanForm => ({
   name: '',
@@ -115,6 +116,59 @@ export function AdminSubscriptionPlans() {
     }
   }
 
+  const columns: Column<SubscriptionPlan>[] = [
+    {
+      key: 'name',
+      header: 'Nombre',
+      render: (plan) => (
+        <div>
+          <p className="font-medium text-gray-900">{plan.name}</p>
+          {plan.description && <p className="text-xs text-gray-400">{plan.description}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'price',
+      header: 'Precio',
+      render: (plan) => (
+        <span className="font-semibold text-gray-800">
+          {parseFloat(plan.priceAmount).toFixed(2)} {plan.currency}
+        </span>
+      ),
+    },
+    {
+      key: 'interval',
+      header: 'Ciclo',
+      render: (plan) => <span className="text-gray-500">{plan.intervalDays} días</span>,
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      render: (plan) => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${plan.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+          {plan.isActive ? 'Activo' : 'Inactivo'}
+        </span>
+      ),
+    },
+    {
+      key: 'stripeId',
+      header: 'Stripe ID',
+      className: 'max-w-xs truncate text-gray-400 text-xs',
+      render: (plan) => <>{plan.stripePriceId ?? '—'}</>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-20',
+      render: (plan) => (
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => openEdit(plan)} className="text-blue-500 hover:underline text-xs">Editar</button>
+          <button onClick={() => handleDelete(plan.id)} className="text-red-500 hover:underline text-xs">Eliminar</button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -122,64 +176,20 @@ export function AdminSubscriptionPlans() {
         <Button onClick={openCreate}>+ Nuevo plan</Button>
       </div>
 
-      {loadErr && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-600">{loadErr}</p>
-        </div>
-      )}
-
       {deleteErr && (
         <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
           <p className="text-sm text-red-600">{deleteErr}</p>
         </div>
       )}
 
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : !loadErr && items.length === 0 ? (
-        <p className="text-gray-400 text-sm">Sin planes registrados.</p>
-      ) : !loadErr && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">Nombre</th>
-                <th className="px-4 py-3 text-left">Precio</th>
-                <th className="px-4 py-3 text-left">Ciclo</th>
-                <th className="px-4 py-3 text-left">Estado</th>
-                <th className="px-4 py-3 text-left">Stripe ID</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.map((plan) => (
-                <tr key={plan.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{plan.name}</p>
-                    {plan.description && <p className="text-xs text-gray-400">{plan.description}</p>}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-gray-800">
-                    {parseFloat(plan.priceAmount).toFixed(2)} {plan.currency}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{plan.intervalDays} días</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${plan.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {plan.isActive ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs max-w-xs truncate">
-                    {plan.stripePriceId ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 flex gap-2 justify-end">
-                    <button onClick={() => openEdit(plan)} className="text-blue-500 hover:underline text-xs">Editar</button>
-                    <button onClick={() => handleDelete(plan.id)} className="text-red-500 hover:underline text-xs">Eliminar</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(plan) => plan.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin planes registrados."
+      />
 
       <Modal
         open={!!modal}

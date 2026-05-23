@@ -6,6 +6,7 @@ import { categorySchema, type CategoryForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
 
 const TYPE_OPTS = [
   { value: 'expense', label: 'Gasto' },
@@ -128,36 +129,46 @@ export function Categories() {
     }
   }
 
-  const expenses = items.filter((c) => c.type === 'expense')
-  const incomes = items.filter((c) => c.type === 'income')
-
-  function Section({ title, list }: { title: string; list: Category[] }) {
-    return (
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {list.length === 0 && <p className="text-gray-400 text-sm px-4 py-3">Sin categorías.</p>}
-          {list.map((cat) => (
-            <div key={cat.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{cat.icon ?? '🏷️'}</span>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{cat.name}</p>
-                  {cat.isSystem && <p className="text-xs text-gray-400">Sistema</p>}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => openEdit(cat)} className="text-xs text-blue-500 hover:underline">Editar</button>
-                {!cat.isSystem && (
-                  <button onClick={() => handleDelete(cat.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
-                )}
-              </div>
-            </div>
-          ))}
+  const columns: Column<Category>[] = [
+    {
+      key: 'icon',
+      header: '',
+      headerClassName: 'w-10',
+      render: (cat) => <span className="text-xl">{cat.icon ?? '🏷️'}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Nombre',
+      render: (cat) => (
+        <div>
+          <p className="font-medium text-gray-900 text-sm">{cat.name}</p>
+          {cat.isSystem && <p className="text-xs text-gray-400">Sistema</p>}
         </div>
-      </div>
-    )
-  }
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Tipo',
+      render: (cat) => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cat.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {cat.type === 'income' ? 'Ingreso' : 'Gasto'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-20',
+      render: (cat) => (
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => openEdit(cat)} className="text-xs text-blue-500 hover:underline">Editar</button>
+          {!cat.isSystem && (
+            <button onClick={() => handleDelete(cat.id)} className="text-xs text-red-500 hover:underline">Eliminar</button>
+          )}
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-4">
@@ -172,40 +183,34 @@ export function Categories() {
         </div>
       )}
 
-      {loading && <p className="text-gray-400 text-sm">Cargando...</p>}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(cat) => cat.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin categorías."
+      />
 
-      {!loading && loadErr && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-600">{loadErr}</p>
-        </div>
-      )}
-
-      {!loading && !loadErr && (
-        <div className="space-y-6">
-          <Section title="Gastos" list={expenses} />
-          <Section title="Ingresos" list={incomes} />
-
-          {total > LIMIT && (
-            <div className="flex items-center justify-between text-sm text-gray-500">
-              <span>Página {page} de {Math.ceil(total / LIMIT)} ({total} total)</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => p - 1)}
-                  disabled={page === 1}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page >= Math.ceil(total / LIMIT)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          )}
+      {!loading && !loadErr && total > LIMIT && (
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span>Página {page} de {Math.ceil(total / LIMIT)} ({total} total)</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= Math.ceil(total / LIMIT)}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       )}
 

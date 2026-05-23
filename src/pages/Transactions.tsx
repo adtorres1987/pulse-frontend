@@ -12,6 +12,7 @@ import { transactionSchema, type TransactionForm } from '../schemas'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
 import { formatCurrency, formatDate } from '../utils/formatters'
 
 const EMOTION_LABELS: Record<string, string> = {
@@ -171,6 +172,59 @@ export function Transactions() {
     ...categories.map((c) => ({ value: c.id, label: `${c.icon ?? ''} ${c.name}` })),
   ]
 
+  const columns: Column<Transaction>[] = [
+    {
+      key: 'date',
+      header: 'Fecha',
+      render: (tx) => <span className="text-gray-500 whitespace-nowrap">{formatDate(tx.occurredAt)}</span>,
+    },
+    {
+      key: 'type',
+      header: 'Tipo',
+      render: (tx) => (
+        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {tx.type === 'income' ? 'Ingreso' : 'Gasto'}
+        </span>
+      ),
+    },
+    {
+      key: 'amount',
+      header: 'Monto',
+      render: (tx) => (
+        <span className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+          {formatCurrency(parseFloat(tx.amount))}
+        </span>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Categoría',
+      render: (tx) => <span className="text-gray-600">{tx.category ? `${tx.category.icon ?? ''} ${tx.category.name}` : '—'}</span>,
+    },
+    {
+      key: 'emotion',
+      header: 'Etiqueta',
+      render: (tx) => <span className="text-gray-500">{tx.emotionTag ? EMOTION_LABELS[tx.emotionTag] : '—'}</span>,
+    },
+    {
+      key: 'note',
+      header: 'Nota',
+      className: 'max-w-xs truncate text-gray-500',
+      render: (tx) => <>{tx.note ?? '—'}</>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-20',
+      render: (tx) => (
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => openEdit(tx)} className="text-blue-500 hover:underline text-xs">Editar</button>
+          <button onClick={() => handleDelete(tx.id)} className="text-red-500 hover:underline text-xs">Eliminar</button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -223,65 +277,14 @@ export function Transactions() {
         )}
       </div>
 
-      {loadErr && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-600">{loadErr}</p>
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      ) : !loadErr && items.length === 0 ? (
-        <p className="text-gray-400 text-sm">Sin transacciones.</p>
-      ) : !loadErr && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">Fecha</th>
-                <th className="px-4 py-3 text-left">Tipo</th>
-                <th className="px-4 py-3 text-left">Monto</th>
-                <th className="px-4 py-3 text-left">Categoría</th>
-                <th className="px-4 py-3 text-left">Etiqueta</th>
-                <th className="px-4 py-3 text-left">Nota</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.map((tx) => (
-                <tr key={tx.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-500">{formatDate(tx.occurredAt)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        tx.type === 'income'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {tx.type === 'income' ? 'Ingreso' : 'Gasto'}
-                    </span>
-                  </td>
-                  <td className={`px-4 py-3 font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(parseFloat(tx.amount))}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {tx.category ? `${tx.category.icon ?? ''} ${tx.category.name}` : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {tx.emotionTag ? EMOTION_LABELS[tx.emotionTag] : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{tx.note ?? '—'}</td>
-                  <td className="px-4 py-3 flex gap-2 justify-end">
-                    <button onClick={() => openEdit(tx)} className="text-blue-500 hover:underline text-xs">Editar</button>
-                    <button onClick={() => handleDelete(tx.id)} className="text-red-500 hover:underline text-xs">Eliminar</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        keyExtractor={(tx) => tx.id}
+        loading={loading}
+        error={loadErr}
+        emptyMessage="Sin transacciones."
+      />
 
       <Modal
         open={!!modal}

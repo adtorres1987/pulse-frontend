@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
+import { DataTable, type Column } from '../components/ui/DataTable'
 
 const STATUS_OPTS = [
   { value: '', label: 'Todos' },
@@ -238,6 +239,60 @@ export function AdminUsers() {
     }
   }
 
+  const columns: Column<AdminUser>[] = [
+    {
+      key: 'name',
+      header: 'Nombre',
+      render: (u) => (
+        <div className="whitespace-nowrap">
+          <p className="font-medium text-gray-900">{fullName(u)}</p>
+          {u.role && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 mt-0.5">
+              {u.role.name}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      header: 'Correo',
+      render: (u) => <span className="text-gray-600 whitespace-nowrap">{u.email}</span>,
+    },
+    {
+      key: 'subscription',
+      header: 'Suscripción / Grupos',
+      render: (u) => <SubscriptionCell sub={u.subscription} groups={u.groupMemberships ?? []} />,
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      render: (u) => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
+          {u.isActive ? 'Activo' : 'Inactivo'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Registro',
+      render: (u) => <span className="text-gray-500 whitespace-nowrap">{formatDate(u.createdAt)}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-24',
+      render: (u) => (
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={() => openEdit(u)} className="text-xs text-blue-500 hover:underline">Editar</button>
+          {isSuperAdmin && (
+            <button onClick={() => openResetPassword(u)} className="text-xs text-amber-500 hover:underline">Contraseña</button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="space-y-4">
       {/* Encabezado */}
@@ -270,98 +325,14 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Estado de carga */}
-      {loading && (
-        <p className="text-gray-400 text-sm">Cargando...</p>
-      )}
-
-      {/* Estado de error */}
-      {!loading && apiErr && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-          <p className="text-sm text-red-600">{apiErr}</p>
-        </div>
-      )}
-
-      {/* Tabla */}
-      {!loading && !apiErr && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          {users.length === 0 ? (
-            <p className="text-gray-400 text-sm px-4 py-6 text-center">
-              No se encontraron usuarios con los filtros aplicados.
-            </p>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-left">
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Correo</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Suscripción / Grupos</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Registro</th>
-                      <th className="px-4 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <p className="font-medium text-gray-900">{fullName(user)}</p>
-                          {user.role && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 mt-0.5">
-                              {user.role.name}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-sm">
-                          {user.email}
-                        </td>
-                        <td className="px-4 py-3">
-                          <SubscriptionCell sub={user.subscription} groups={user.groupMemberships ?? []} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {user.isActive ? 'Activo' : 'Inactivo'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-sm">
-                          {formatDate(user.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <button
-                              onClick={() => openEdit(user)}
-                              className="text-xs text-blue-500 hover:underline"
-                            >
-                              Editar
-                            </button>
-                            {isSuperAdmin && (
-                              <button
-                                onClick={() => openResetPassword(user)}
-                                className="text-xs text-amber-500 hover:underline"
-                              >
-                                Contraseña
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-            </>
-          )}
-        </div>
-      )}
+      <DataTable
+        columns={columns}
+        data={users}
+        keyExtractor={(u) => u.id}
+        loading={loading}
+        error={apiErr}
+        emptyMessage="No se encontraron usuarios con los filtros aplicados."
+      />
 
       {/* Modal de cambio de contraseña (super_admin) */}
       <Modal
